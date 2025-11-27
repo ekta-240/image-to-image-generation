@@ -222,6 +222,10 @@ npm run dev
 - **Libraries**: diffusers 0.24.0, transformers 4.35.0, accelerate 0.25.0
 - **Currency**: Indian Rupees (₹) with en-IN locale formatting
 
+## Future Scope
+
+- Drag and Drop
+
 ## 🎯 GPU Requirements
 
 **Minimum:**
