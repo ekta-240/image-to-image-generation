@@ -1,0 +1,73 @@
+{\rtf1\ansi\deff0
+{\fonttbl{\f0 Arial;}{\f1 Calibri;}}
+\fs28\b Homelytics – End-to-End Project Presentation\b0\par
+\fs24\par
+\b Table of Contents\b0\par
+- Executive Summary\par
+- System Architecture\par
+- Frontend (React + Vite)\par
+- Backend (Flask + Stable Diffusion in Colab)\par
+- ngrok Tunnel (Deep Dive)\par
+- Request–Response Flow\par
+- Smart Pricing Logic\par
+- Drag & Drop Customization\par
+- Daily Runbook / Demo Script\par
+- Security, Limits, and Trade-offs\par
+- Alternatives Considered\par
+- Q&A Backup Slides\par
+\par
+\b Executive Summary\b0\par
+Homelytics is an AI-powered interior design platform with two ways to design rooms:\par
+- AI Generation: Upload an empty-room photo + describe your vision → AI generates a furnished image.\par
+- Drag & Drop: Manually customize by placing furniture with live pricing.\par
+Frontend runs locally (React + Vite), backend runs in Google Colab (Flask + Stable Diffusion), connected via ngrok.\par
+\par
+\b System Architecture\b0\par
+- Frontend: React 18 + Vite 5 on Windows (localhost:3000), Axios, Framer Motion\par
+- Backend: Flask 3.0 in Google Colab with GPU, Diffusers model: SG161222/Realistic_Vision_V5.1_noVAE\par
+- Connectivity: ngrok tunnel exposes Colab’s Flask server at public HTTPS URL\par
+\par
+\b Frontend (React + Vite)\b0\par
+- Pages: Home, AI Generation (AIGeneration.jsx), Customize\par
+- Flow: set BACKEND_URL → build FormData → axios.post → render base64 image + pricing\par
+\par
+\b Backend (Flask + Stable Diffusion in Colab)\b0\par
+- CORS-enabled Flask API; Stable Diffusion img2img on GPU\par
+- Settings: strength=0.95, guidance_scale=9.0, steps=50\par
+- /api/generate: read image+prompt → run pipeline → smart pricing → JSON response\par
+\par
+\b ngrok Tunnel (Deep Dive)\b0\par
+- Purpose: Public HTTPS URL to a private Colab server via encrypted tunnel\par
+- Mechanism: Colab client opens outbound WebSocket → ngrok edge assigns subdomain → forwards to Flask :5000\par
+- Overhead: ~20–100ms; negligible vs 30–60s AI processing\par
+\par
+\b Request–Response Flow\b0\par
+1) React sends POST to https://<ngrok>/api/generate\par
+2) ngrok edge → tunnel → Colab VM → Flask\par
+3) AI generates furnished image; pricing calculated\par
+4) JSON returns { image(base64), cost, furniture_detected }\par
+\par
+\b Smart Pricing Logic\b0\par
+- Keyword mapping for 40+ furniture items with typical prices\par
+- Room-type defaults when no items detected\par
+\par
+\b Drag & Drop Customization\b0\par
+- Upload room background → place items → live total updates\par
+- Complements AI generation; both flows shown with before/after on landing page\par
+\par
+\b Daily Runbook / Demo Script\b0\par
+1) Start Colab backend → copy ngrok URL\par
+2) Update frontend URL: python update_url.py → paste URL\par
+3) Start frontend: npm run dev → open http://localhost:3000\par
+4) Demo AI generation + pricing; show drag & drop\par
+\par
+\b Security, Limits, Trade-offs\b0\par
+- HTTPS + encrypted tunnel; can add basic auth or tokens\par
+- Colab sessions expire; ngrok URL changes → update via script\par
+\par
+\b Alternatives\b0\par
+- Cloudflare Tunnel; SSH reverse tunnel; Managed GPU hosting\par
+\par
+\b Q&A Backup\b0\par
+- Why strength/guidance values, why Colab, how to update URLs, how pricing works\par
+}

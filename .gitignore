@@ -1,0 +1,14 @@
+node_modules/
+dist/
+.env
+.DS_Store
+*.log
+.venv/
+backend/venv/
+backend/__pycache__/
+backend/*.pyc
+backend/uploads/*
+backend/generated/*
+!backend/uploads/.gitkeep
+!backend/generated/.gitkeep
+*.egg-info/
