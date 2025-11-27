@@ -323,13 +323,6 @@ For issues or questions:
 - **React & Vite** - Frontend framework and tooling
 - **NVIDIA** - GPU compute platform (CUDA)
 
-## Contributors
-
-- **ekta-240** - Main developer
-- **yuvi-source** - Contributor
-
 ---
-
-Built with ❤️ for local GPU-powered interior design
 
 **Hardware Tested:** Acer Nitro V15 (RTX 3050 6GB Laptop GPU, CUDA 12.3)
