@@ -14,6 +14,12 @@ export default function AIGeneration() {
   const [isGenerating, setIsGenerating] = useState(false)
   const [showPricing, setShowPricing] = useState(false)
   const [estimatedPrice, setEstimatedPrice] = useState(null)
+  
+  // Budget feature states
+  const [budget, setBudget] = useState(100000)
+  const [showBudgetSuggestions, setShowBudgetSuggestions] = useState(false)
+  const [budgetSuggestions, setBudgetSuggestions] = useState(null)
+  const [roomDimensions, setRoomDimensions] = useState({ length: '', width: '', height: '' })
 
   const roomTypes = [
     'Living Room',
@@ -56,10 +62,62 @@ export default function AIGeneration() {
     multiple: false
   })
 
+  const fetchBudgetSuggestions = async () => {
+    try {
+      const dimensions = (roomDimensions.length && roomDimensions.width) 
+        ? { 
+            length: parseFloat(roomDimensions.length), 
+            width: parseFloat(roomDimensions.width),
+            height: parseFloat(roomDimensions.height) || 10
+          }
+        : null
+
+      const response = await axios.post('http://localhost:5000/api/suggest-furniture', {
+        room_type: roomType,
+        budget: budget,
+        dimensions: dimensions
+      })
+
+      const suggestions = response.data.suggestions
+      setBudgetSuggestions(suggestions)
+      setShowBudgetSuggestions(true)
+      
+      // Auto-populate prompt with suggested furniture (using clean names)
+      if (suggestions && suggestions.items && suggestions.items.length > 0) {
+        const furnitureNames = suggestions.items
+          .map(item => item.key || item.name.replace(/^(Modern |Office |Dining |Window |Decorative |Area |Floor |Table |Custom: )/i, ''))
+          .join(', ')
+        setPrompt(furnitureNames)
+        
+        // Scroll to prompt section to show it's been filled
+        setTimeout(() => {
+          const promptElement = document.querySelector('textarea[placeholder*="Budget suggestions"]')
+          if (promptElement) {
+            promptElement.scrollIntoView({ behavior: 'smooth', block: 'center' })
+            promptElement.focus()
+          }
+        }, 500)
+      }
+      
+    } catch (error) {
+      console.error('Budget suggestions error:', error)
+      alert('Failed to fetch budget suggestions')
+    }
+  }
+
   const handleGenerate = async () => {
     if (!image) {
       alert('Please upload an image first!')
       return
+    }
+    
+    // Auto-populate prompt from budget suggestions if no manual prompt
+    if (!prompt && budgetSuggestions && budgetSuggestions.items) {
+      // Use the item keys (e.g., 'table_lamp') instead of display names to ensure exact matching
+      const furnitureKeys = budgetSuggestions.items.map(item => 
+        item.key || item.name.replace('Custom: ', '').toLowerCase()
+      ).join(', ')
+      setPrompt(furnitureKeys)
     }
 
     setIsGenerating(true)
@@ -240,34 +298,175 @@ export default function AIGeneration() {
             {/* Style Selection */}
             <div className="bg-white rounded-xl shadow-lg p-6">
               <h2 className="text-2xl font-semibold text-gray-900 mb-4">
-                Design Style
+                🎨 Design Style
               </h2>
               <div className="grid grid-cols-2 gap-3">
-                {styles.map((styleOption) => (
-                  <button
-                    key={styleOption}
-                    onClick={() => setStyle(styleOption.toLowerCase())}
-                    className={`px-4 py-3 rounded-lg font-medium transition-colors ${
-                      style === styleOption.toLowerCase()
-                        ? 'bg-blue-600 text-white'
+                {styles.map((s, index) => (
+                  <motion.button
+                    key={s}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.05 }}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => setStyle(s.toLowerCase())}
+                    className={`px-4 py-3 rounded-xl font-medium transition-all duration-200 ${
+                      style === s.toLowerCase()
+                        ? 'bg-blue-600 text-white shadow-lg'
                         : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                     }`}
                   >
-                    {styleOption}
-                  </button>
+                    {s}
+                  </motion.button>
                 ))}
               </div>
+            </div>
+
+            {/* Budget Section */}
+            <div className="bg-white rounded-3xl shadow-lg p-6 border border-gray-100 hover:shadow-2xl transition-all duration-300">
+              <h2 className="text-2xl font-semibold text-gray-900 mb-4 flex items-center">
+                <IndianRupee className="w-6 h-6 mr-2 text-green-600" />
+                Budget & Room Dimensions
+              </h2>
+              
+              {/* Budget Slider */}
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Budget: ₹{budget.toLocaleString('en-IN')}
+                </label>
+                <input
+                  type="range"
+                  min="10000"
+                  max="500000"
+                  step="10000"
+                  value={budget}
+                  onChange={(e) => setBudget(parseInt(e.target.value))}
+                  className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                />
+                <div className="flex justify-between text-xs text-gray-500 mt-1">
+                  <span>₹10K</span>
+                  <span>₹500K</span>
+                </div>
+              </div>
+
+              {/* Room Dimensions */}
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Room Dimensions (Optional - in feet)
+                </label>
+                <div className="grid grid-cols-3 gap-3">
+                  <input
+                    type="number"
+                    placeholder="Length"
+                    value={roomDimensions.length}
+                    onChange={(e) => setRoomDimensions({...roomDimensions, length: e.target.value})}
+                    className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                  <input
+                    type="number"
+                    placeholder="Width"
+                    value={roomDimensions.width}
+                    onChange={(e) => setRoomDimensions({...roomDimensions, width: e.target.value})}
+                    className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                  <input
+                    type="number"
+                    placeholder="Height"
+                    value={roomDimensions.height}
+                    onChange={(e) => setRoomDimensions({...roomDimensions, height: e.target.value})}
+                    className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+              </div>
+
+              {/* Suggest Button */}
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={fetchBudgetSuggestions}
+                className="w-full bg-green-600 text-white py-3 px-6 rounded-xl font-semibold hover:bg-green-700 transition-all duration-200 flex items-center justify-center shadow-lg"
+              >
+                <Sparkles className="w-5 h-5 mr-2" />
+                Get Budget Suggestions
+              </motion.button>
+
+              {/* Budget Suggestions Display */}
+              {showBudgetSuggestions && budgetSuggestions && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="mt-4 p-4 bg-green-50 border border-green-200 rounded-xl"
+                >
+                  <div className="flex justify-between items-center mb-3">
+                    <h3 className="font-semibold text-green-900">Suggested Items ({budgetSuggestions.item_count})</h3>
+                    <span className="text-sm font-medium text-green-700">
+                      {budgetSuggestions.budget_utilization}% utilized
+                    </span>
+                  </div>
+                  
+                  <div className="space-y-3 max-h-64 overflow-y-auto">
+                    {budgetSuggestions.items.map((item, idx) => (
+                      <div key={idx} className="bg-white p-3 rounded-lg border border-green-100">
+                        <div className="flex justify-between items-center mb-2">
+                          <span className="text-gray-700 font-medium">
+                            {item.name}
+                            {item.priority === 'essential' && <span className="ml-2 text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">Essential</span>}
+                          </span>
+                          <span className="font-semibold text-green-900">₹{item.price.toLocaleString('en-IN')}</span>
+                        </div>
+                        {item.links && (
+                          <div className="flex gap-2 text-xs mt-2">
+                            <a 
+                              href={item.links.amazon} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="px-2 py-1 bg-orange-500 text-white rounded hover:bg-orange-600 transition-colors"
+                            >
+                              🛒 Amazon
+                            </a>
+                            <a 
+                              href={item.links.flipkart} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="px-2 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+                            >
+                              🛍️ Flipkart
+                            </a>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                  
+                  <div className="mt-3 pt-3 border-t border-green-200 grid grid-cols-2 gap-2 text-sm">
+                    <div>
+                      <span className="text-gray-600">Total Cost:</span>
+                      <p className="font-bold text-green-900">₹{budgetSuggestions.total_cost.toLocaleString('en-IN')}</p>
+                    </div>
+                    <div>
+                      <span className="text-gray-600">Remaining:</span>
+                      <p className="font-bold text-green-900">₹{budgetSuggestions.remaining_budget.toLocaleString('en-IN')}</p>
+                    </div>
+                  </div>
+
+                  {budgetSuggestions.room_area && (
+                    <div className="mt-2 text-xs text-gray-600">
+                      Room: {budgetSuggestions.room_area.length}ft × {budgetSuggestions.room_area.width}ft = {budgetSuggestions.room_area.area_sqft} sq ft ({budgetSuggestions.room_area.size_category})
+                    </div>
+                  )}
+                </motion.div>
+              )}
             </div>
 
             {/* Prompt Input */}
             <div className="bg-white rounded-3xl shadow-lg p-6 border border-gray-100 hover:shadow-2xl transition-all duration-300">
               <h2 className="text-2xl font-semibold text-gray-900 mb-4">
-                ✍️ Describe Your Vision
+                ✍️ Furniture Items
               </h2>
               <textarea
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
-                placeholder="E.g., Add a comfortable sofa, coffee table, wall art, plants, warm lighting..."
+                placeholder="Click 'Get Budget Suggestions' above, or manually type: sofa, coffee table, lamp, rug..."
                 className="w-full h-32 px-4 py-3 border-2 border-gray-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none transition-all duration-200 hover:border-blue-300"
               />
             </div>
@@ -391,12 +590,34 @@ export default function AIGeneration() {
                           initial={{ opacity: 0, x: -20 }}
                           animate={{ opacity: 1, x: 0 }}
                           transition={{ delay: index * 0.1 }}
-                          className="flex justify-between items-center"
+                          className="border-b border-gray-100 pb-3 last:border-0"
                         >
-                          <span className="text-gray-700 font-medium">{item.name}</span>
-                          <span className="font-bold text-gray-900">
-                            ₹{item.price.toLocaleString('en-IN')}
-                          </span>
+                          <div className="flex justify-between items-center mb-2">
+                            <span className="text-gray-700 font-medium">{item.name}</span>
+                            <span className="font-bold text-gray-900">
+                              ₹{item.price.toLocaleString('en-IN')}
+                            </span>
+                          </div>
+                          {item.links && (
+                            <div className="flex gap-2 text-xs">
+                              <a 
+                                href={item.links.amazon} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="px-3 py-1 bg-orange-500 text-white rounded-full hover:bg-orange-600 transition-colors flex items-center gap-1"
+                              >
+                                🛒 Amazon
+                              </a>
+                              <a 
+                                href={item.links.flipkart} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="px-3 py-1 bg-blue-500 text-white rounded-full hover:bg-blue-600 transition-colors flex items-center gap-1"
+                              >
+                                🛍️ Flipkart
+                              </a>
+                            </div>
+                          )}
                         </motion.div>
                       ))}
                       <div className="border-t-2 border-gray-200 pt-3 mt-3">

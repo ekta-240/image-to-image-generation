@@ -129,6 +129,221 @@ FURNITURE_PRICES = {
     'microwave': {'name': 'Microwave Oven', 'price': 22000},
 }
 
+# Purchase links for furniture (Amazon, Flipkart)
+FURNITURE_LINKS = {
+    'sofa': {
+        'amazon': 'https://www.amazon.in/s?k=modern+sofa+3+seater',
+        'flipkart': 'https://www.flipkart.com/search?q=modern+sofa'
+    },
+    'armchair': {
+        'amazon': 'https://www.amazon.in/s?k=armchair+living+room',
+        'flipkart': 'https://www.flipkart.com/search?q=armchair'
+    },
+    'coffee_table': {
+        'amazon': 'https://www.amazon.in/s?k=coffee+table+wooden',
+        'flipkart': 'https://www.flipkart.com/search?q=coffee+table'
+    },
+    'side_table': {
+        'amazon': 'https://www.amazon.in/s?k=side+table+living+room',
+        'flipkart': 'https://www.flipkart.com/search?q=side+table'
+    },
+    'floor_lamp': {
+        'amazon': 'https://www.amazon.in/s?k=floor+lamp+standing',
+        'flipkart': 'https://www.flipkart.com/search?q=floor+lamp'
+    },
+    'table_lamp': {
+        'amazon': 'https://www.amazon.in/s?k=table+lamp+bedside',
+        'flipkart': 'https://www.flipkart.com/search?q=table+lamp'
+    },
+    'bed': {
+        'amazon': 'https://www.amazon.in/s?k=king+size+bed+wooden',
+        'flipkart': 'https://www.flipkart.com/search?q=king+bed'
+    },
+    'nightstand': {
+        'amazon': 'https://www.amazon.in/s?k=nightstand+bedside+table',
+        'flipkart': 'https://www.flipkart.com/search?q=nightstand'
+    },
+    'bookshelf': {
+        'amazon': 'https://www.amazon.in/s?k=bookshelf+wooden',
+        'flipkart': 'https://www.flipkart.com/search?q=bookshelf'
+    },
+    'tv_stand': {
+        'amazon': 'https://www.amazon.in/s?k=tv+stand+unit',
+        'flipkart': 'https://www.flipkart.com/search?q=tv+stand'
+    },
+    'plant': {
+        'amazon': 'https://www.amazon.in/s?k=indoor+plants+natural',
+        'flipkart': 'https://www.flipkart.com/search?q=indoor+plants'
+    },
+    'artificial_plant': {
+        'amazon': 'https://www.amazon.in/s?k=artificial+plants+indoor',
+        'flipkart': 'https://www.flipkart.com/search?q=artificial+plant'
+    },
+    'wall_art': {
+        'amazon': 'https://www.amazon.in/s?k=wall+art+painting',
+        'flipkart': 'https://www.flipkart.com/search?q=wall+art'
+    },
+    'rug': {
+        'amazon': 'https://www.amazon.in/s?k=area+rug+carpet',
+        'flipkart': 'https://www.flipkart.com/search?q=area+rug'
+    },
+    'dining_table': {
+        'amazon': 'https://www.amazon.in/s?k=dining+table+6+seater',
+        'flipkart': 'https://www.flipkart.com/search?q=dining+table'
+    },
+    'dining_chair': {
+        'amazon': 'https://www.amazon.in/s?k=dining+chairs+set+of+4',
+        'flipkart': 'https://www.flipkart.com/search?q=dining+chairs'
+    },
+    'desk': {
+        'amazon': 'https://www.amazon.in/s?k=office+desk+computer+table',
+        'flipkart': 'https://www.flipkart.com/search?q=office+desk'
+    },
+    'office_chair': {
+        'amazon': 'https://www.amazon.in/s?k=office+chair+ergonomic',
+        'flipkart': 'https://www.flipkart.com/search?q=office+chair'
+    },
+    'curtains': {
+        'amazon': 'https://www.amazon.in/s?k=window+curtains+door',
+        'flipkart': 'https://www.flipkart.com/search?q=curtains'
+    },
+    'bathtub': {
+        'amazon': 'https://www.amazon.in/s?k=bathtub+freestanding',
+        'flipkart': 'https://www.flipkart.com/search?q=bathtub'
+    },
+    'shower': {
+        'amazon': 'https://www.amazon.in/s?k=shower+head+bathroom',
+        'flipkart': 'https://www.flipkart.com/search?q=shower+head'
+    },
+    'sink': {
+        'amazon': 'https://www.amazon.in/s?k=bathroom+sink+wash+basin',
+        'flipkart': 'https://www.flipkart.com/search?q=wash+basin'
+    },
+    'mirror': {
+        'amazon': 'https://www.amazon.in/s?k=wall+mirror+bathroom',
+        'flipkart': 'https://www.flipkart.com/search?q=wall+mirror'
+    },
+    'gas_stove': {
+        'amazon': 'https://www.amazon.in/s?k=gas+stove+3+burner',
+        'flipkart': 'https://www.flipkart.com/search?q=gas+stove'
+    },
+    'kitchen_cabinet': {
+        'amazon': 'https://www.amazon.in/s?k=kitchen+cabinet+modular',
+        'flipkart': 'https://www.flipkart.com/search?q=kitchen+cabinet'
+    },
+    'refrigerator': {
+        'amazon': 'https://www.amazon.in/s?k=refrigerator+double+door',
+        'flipkart': 'https://www.flipkart.com/search?q=refrigerator'
+    },
+    'dishwasher': {
+        'amazon': 'https://www.amazon.in/s?k=dishwasher+automatic',
+        'flipkart': 'https://www.flipkart.com/search?q=dishwasher'
+    },
+    'microwave': {
+        'amazon': 'https://www.amazon.in/s?k=microwave+oven',
+        'flipkart': 'https://www.flipkart.com/search?q=microwave+oven'
+    }
+}
+
+def get_purchase_links(furniture_key):
+    """Get purchase links for a furniture item"""
+    if furniture_key in FURNITURE_LINKS:
+        return FURNITURE_LINKS[furniture_key]
+    # Generate generic search links for unknown items
+    search_query = furniture_key.replace('_', '+')
+    return {
+        'amazon': f'https://www.amazon.in/s?k={search_query}+furniture',
+        'flipkart': f'https://www.flipkart.com/search?q={search_query}'
+    }
+
+# Room type priority mapping for budget suggestions
+ROOM_PRIORITIES = {
+    'living_room': [
+        'sofa', 'coffee_table', 'tv_stand', 'rug', 'floor_lamp', 
+        'curtains', 'plant', 'side_table', 'wall_art'
+    ],
+    'bedroom': [
+        'bed', 'nightstand', 'table_lamp', 'rug', 'curtains', 
+        'mirror', 'plant', 'bookshelf'
+    ],
+    'kitchen': [
+        'refrigerator', 'gas_stove', 'kitchen_cabinet', 'microwave', 
+        'sink', 'dishwasher', 'dining_table', 'dining_chair'
+    ],
+    'bathroom': [
+        'bathtub', 'shower', 'sink', 'mirror', 'curtains'
+    ],
+    'office': [
+        'desk', 'office_chair', 'bookshelf', 'floor_lamp', 
+        'plant', 'rug', 'curtains'
+    ],
+    'dining_room': [
+        'dining_table', 'dining_chair', 'rug', 'curtains', 
+        'plant', 'wall_art', 'mirror'
+    ]
+}
+
+def suggest_furniture_by_budget(room_type, budget, room_dimensions=None):
+    """
+    Suggest furniture items based on budget and room type
+    Uses priority-based selection to maximize value
+    
+    Args:
+        room_type: Type of room (living_room, bedroom, etc.)
+        budget: Total budget in INR
+        room_dimensions: Optional dict with 'length', 'width', 'height' in feet
+    
+    Returns:
+        Dict with suggested items, total cost, and remaining budget
+    """
+    room_type_normalized = room_type.lower().replace(' ', '_')
+    priorities = ROOM_PRIORITIES.get(room_type_normalized, ROOM_PRIORITIES['living_room'])
+    
+    selected = []
+    remaining_budget = budget
+    
+    # Priority items first
+    for item_key in priorities:
+        if item_key in FURNITURE_PRICES:
+            item_info = FURNITURE_PRICES[item_key]
+            price = item_info['price']
+            
+            if price <= remaining_budget:
+                selected.append({
+                    'name': item_info['name'],
+                    'key': item_key,
+                    'price': price,
+                    'priority': 'essential' if priorities.index(item_key) < 4 else 'optional',
+                    'links': get_purchase_links(item_key)
+                })
+                remaining_budget -= price
+    
+    # Calculate room area if dimensions provided
+    area_info = None
+    if room_dimensions:
+        length = room_dimensions.get('length', 0)
+        width = room_dimensions.get('width', 0)
+        height = room_dimensions.get('height', 0)
+        
+        if length and width:
+            area_sqft = length * width
+            area_info = {
+                'area_sqft': area_sqft,
+                'length': length,
+                'width': width,
+                'height': height,
+                'size_category': 'small' if area_sqft < 100 else 'medium' if area_sqft < 200 else 'large'
+            }
+    
+    return {
+        'items': selected,
+        'total_cost': budget - remaining_budget,
+        'remaining_budget': remaining_budget,
+        'budget_utilization': round(((budget - remaining_budget) / budget) * 100, 1) if budget > 0 else 0,
+        'item_count': len(selected),
+        'room_area': area_info
+    }
+
 def estimate_furniture_pricing(room_type, style, prompt, uploaded_image=None):
     """
     Estimate furniture items and pricing based ONLY on items explicitly mentioned in the prompt
@@ -143,32 +358,33 @@ def estimate_furniture_pricing(room_type, style, prompt, uploaded_image=None):
     
     # Manual keyword mapping with very specific terms to avoid false matches
     # Format: furniture_key: [list of specific phrases that should match]
+    # All keywords are lowercase for case-insensitive matching
     keyword_mapping = {
         'sofa': ['sofa', 'couch'],
         'armchair': ['armchair', 'arm chair'],
-        'coffee_table': ['coffee table'],
-        'side_table': ['side table'],
-        'floor_lamp': ['floor lamp', 'standing lamp'],
-        'table_lamp': ['table lamp', 'desk lamp'],
+        'coffee_table': ['coffee_table', 'coffee table'],
+        'side_table': ['side_table', 'side table'],
+        'floor_lamp': ['floor_lamp', 'floor lamp', 'standing lamp'],
+        'table_lamp': ['table_lamp', 'table lamp', 'desk lamp'],
         'bed': ['bed'],
         'nightstand': ['nightstand', 'night stand', 'bedside table'],
         'bookshelf': ['bookshelf', 'book shelf'],
-        'tv_stand': ['tv stand', 'television stand', 'media console'],
+        'tv_stand': ['tv_stand', 'tv stand', 'television stand', 'media console'],
         'plant': ['plant'],  # Will match "plant" but we'll handle "artificial plant" separately
-        'artificial_plant': ['artificial plant'],
-        'wall_art': ['wall art', 'painting', 'art frame'],
+        'artificial_plant': ['artificial_plant', 'artificial plant'],
+        'wall_art': ['wall_art', 'wall art', 'painting', 'art frame'],
         'rug': ['rug', 'carpet'],
-        'dining_table': ['dining table'],
-        'dining_chair': ['dining chair'],
+        'dining_table': ['dining_table', 'dining table'],
+        'dining_chair': ['dining_chair', 'dining chair'],
         'desk': ['desk'],
-        'office_chair': ['office chair', 'task chair'],
-        'curtains': ['curtain', 'drape'],  # Singular form to catch both
+        'office_chair': ['office_chair', 'office chair', 'task chair'],
+        'curtains': ['curtains', 'curtain', 'drape', 'drapes', 'window curtain'],
         'bathtub': ['bathtub', 'bath tub', 'tub'],
         'shower': ['shower'],
         'sink': ['sink'],
         'mirror': ['mirror'],
-        'gas_stove': ['gas stove', 'stove', 'cooktop', 'range'],
-        'kitchen_cabinet': ['cabinet', 'kitchen cabinet', 'cabinets'],
+        'gas_stove': ['gas_stove', 'gas stove', 'stove', 'cooktop', 'range'],
+        'kitchen_cabinet': ['kitchen_cabinet', 'cabinet', 'kitchen cabinet', 'cabinets'],
         'refrigerator': ['refrigerator', 'fridge'],
         'dishwasher': ['dishwasher'],
         'microwave': ['microwave', 'oven'],
@@ -199,7 +415,8 @@ def estimate_furniture_pricing(room_type, style, prompt, uploaded_image=None):
             items.append({
                 'name': FURNITURE_PRICES[item_key]['name'],
                 'price': FURNITURE_PRICES[item_key]['price'],
-                'custom': False
+                'custom': False,
+                'links': get_purchase_links(item_key)
             })
     
     # Detect custom items (phrases not in our database)
@@ -222,10 +439,17 @@ def estimate_furniture_pricing(room_type, style, prompt, uploaded_image=None):
         if len(custom_name) < 3:
             continue
         custom_display = custom_name.title()
+        # Generate generic search links for custom items
+        search_query = custom_name.replace(' ', '+')
         items.append({
             'name': f"Custom: {custom_display}",
             'price': 35000,
-            'custom': True
+            'custom': True,
+            'links': {
+                'amazon': f'https://www.amazon.in/s?k={search_query}+furniture',
+                'flipkart': f'https://www.flipkart.com/search?q={search_query}',
+                'pepperfry': f'https://www.pepperfry.com/search?q={search_query}'
+            }
         })
         custom_counter += 1
     
@@ -235,6 +459,28 @@ def estimate_furniture_pricing(room_type, style, prompt, uploaded_image=None):
         'items': items,
         'total': total
     }
+
+@app.route('/api/suggest-furniture', methods=['POST'])
+def suggest_furniture():
+    """
+    Endpoint to suggest furniture based on budget and room type
+    """
+    try:
+        data = request.get_json()
+        room_type = data.get('room_type', 'living_room')
+        budget = data.get('budget', 100000)  # Default 1 lakh
+        room_dimensions = data.get('dimensions')  # Optional: {length, width, height}
+        
+        suggestions = suggest_furniture_by_budget(room_type, budget, room_dimensions)
+        
+        return jsonify({
+            'success': True,
+            'suggestions': suggestions
+        }), 200
+        
+    except Exception as e:
+        print(f"Error in suggest_furniture: {str(e)}")
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/api/generate', methods=['POST'])
 def generate_room():
@@ -319,14 +565,14 @@ def generate_room():
             if device == "cpu":
                 print("⏳ This will take 30-60 seconds on CPU...")
             
-            # Generate with optimized settings for complete item generation
+            # Generate with optimized settings to preserve structure and add items
             generated_image = pipe(
                 prompt=full_prompt,
                 negative_prompt=negative_prompt,
                 image=input_image,
-                strength=0.75,           # Higher strength to add all items properly
-                guidance_scale=15.0,     # Maximum guidance for strict prompt following
-                num_inference_steps=60   # More steps for complete and accurate generation
+                strength=0.65,           # Lowered to 0.65 to better preserve original structure
+                guidance_scale=15.0,     # Balanced at 15.0 for good prompt following while maintaining structure
+                num_inference_steps=70   # 70 steps for high quality generation
             ).images[0]
             
             # Clear GPU cache after generation
