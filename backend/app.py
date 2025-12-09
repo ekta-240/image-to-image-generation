@@ -26,6 +26,8 @@ USE_LOCAL_MODEL = True  # Set to True to load model locally (optimized for RTX 3
 # Hugging Face token (get from: https://huggingface.co/settings/tokens)
 HF_TOKEN = os.environ.get("HF_TOKEN", None)  # Set as environment variable or paste here
 
+# HF_TOKEN = " " # Alternatively, paste your token here
+
 # Load model only if local mode is enabled
 pipe = None
 if USE_LOCAL_MODEL:
@@ -37,10 +39,12 @@ if USE_LOCAL_MODEL:
     try:
         # RTX 3050 6GB Optimizations
         print("🎮 Optimizing for RTX 3050 (6GB VRAM)...")
+
+        my_dtype = torch.float16 if device == "cuda" else torch.float32
         
         pipe = StableDiffusionImg2ImgPipeline.from_pretrained(
             MODEL_ID,
-            torch_dtype=torch.float16,  # Use FP16 to save memory
+            torch_dtype=my_dtype,  
             use_auth_token=HF_TOKEN,
             low_cpu_mem_usage=True,
             safety_checker=None,  # Disable safety checker to save VRAM
