@@ -90,29 +90,29 @@ Backend runs on: **http://localhost:5000**
 🏠 Homelytics - AI-Powered Interior Design Platform
 Transform your room ideas into stunning visualizations using AI-powered image generation with smart budget planning, direct purchase links, and a cloud-synced furniture library.
 
-# ✨ Features
-## 🎨 AI-Powered Generation
+## ✨ Features
+### 🎨 AI-Powered Generation
 - Local GPU Processing: Optimized for NVIDIA RTX 3050 6GB/3060/4060+ using Stable Diffusion.
 
 - Structure Preservation: Maintains original architecture (walls/windows) via ControlNet-style strength parameters.
 
 - Style & Room Variety: 8 styles and 7 room types for diverse design needs.
 
-## 🛋️ Manual Customization (New!)
+### 🛋️ Manual Customization (New!)
 - Drag & Drop Workspace: Manually place furniture over your uploaded room image.
 
 - Dynamic Controls: Rotate, resize, and delete items with a real-time selection ring.
 
 - Canvas Zoom: Scale the workspace from 50% to 200% for precision.
 
-## 💰 Smart Pricing & Database
+### 💰 Smart Pricing & Database
 - Firebase Firestore Integration: Furniture library is now synced to the cloud for easy updates.
 
 - 50-Item Library: Expanded 50 items across 8 categories (Seating, Lighting, Office, etc.).
 
 - Live Pricing (₹): Real-time price calculation and budget utilization tracking.
 
-# 🚀 Setup & Installation
+## 🚀 Setup & Installation
 1. Prerequisites
 - Node.js 18+ & Python 3.10+
 
@@ -159,7 +159,7 @@ export const db = getFirestore(app);
 
 - Important: Once successful, delete Migration.jsx to prevent duplicate data.
 
-# 📁 Project Structure
+## 📁 Project Structure
 ```bash
 homelytics/
 ├── src/
@@ -190,7 +190,7 @@ npm run dev
 ```
 - Visit: http://localhost:3002
 
-# 📊 Furniture Library Overview
+## 📊 Furniture Library Overview
 - The system now fetches 50 items from Firestore including:
 
 - Seating: Modern Sofas, Recliners, Bean Bags, Bar Stools.
@@ -203,7 +203,7 @@ npm run dev
 
 - Decor: Wall Art, Area Rugs, Mirrors, and Vases.
 
-# 🔧 AI Calibration
+## 🔧 AI Calibration
 - Settings in backend/app.py for RTX 3050 6GB:
 
 - Strength (0.65): Balance between prompt accuracy and room layout.
