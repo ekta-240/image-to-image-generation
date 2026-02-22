@@ -3,6 +3,7 @@ import Navbar from './components/Navbar'
 import Home from './pages/Home'
 import AIGeneration from './pages/AIGeneration'
 import DragDropCustomize from './pages/DragDropCustomize'
+import Migration from './Migration';
 
 function App() {
   return (
@@ -11,6 +12,9 @@ function App() {
         <Navbar />
         <Routes>
           <Route path="/" element={<Home />} />
+
+          {/* <Route path="/" element={<Migration />} /> */}
+
           <Route path="/ai-generate" element={<AIGeneration />} />
           <Route path="/customize" element={<DragDropCustomize />} />
         </Routes>

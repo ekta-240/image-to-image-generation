@@ -12,3 +12,8 @@ backend/generated/*
 !backend/uploads/.gitkeep
 !backend/generated/.gitkeep
 *.egg-info/
+Migration.jsx
+firebase.js
+.git
+
+
