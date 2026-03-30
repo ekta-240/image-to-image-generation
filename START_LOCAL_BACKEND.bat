@@ -27,7 +27,7 @@ cd /d "%~dp0backend"
 echo.
 echo 🚀 Starting backend...
 echo.
-
+set FLOORPLAN_LORA_ID=./backend/loras/floorplan.safetensors
 python app.py
 
 pause

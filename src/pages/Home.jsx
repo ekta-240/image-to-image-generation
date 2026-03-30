@@ -1,6 +1,6 @@
 import { motion, useScroll, useTransform } from 'framer-motion'
 import { Link } from 'react-router-dom'
-import { Sparkles, PaintBucket, IndianRupee, Share2, Star, ChevronRight, Zap, Heart, TrendingUp } from 'lucide-react'
+import { Sparkles, PaintBucket, IndianRupee, Share2, Star, ChevronRight, Zap, Heart, TrendingUp, Building2 } from 'lucide-react'
 
 export default function Home() {
   const { scrollYProgress } = useScroll()
@@ -43,6 +43,12 @@ export default function Home() {
       title: "Drag & Drop Customization",
       description: "Manually design your room by dragging and dropping furniture items to create your perfect layout.",
       gradient: "from-blue-500 to-cyan-500"
+    },
+    {
+      icon: Building2,
+      title: "2D Layout Generator",
+      description: "Generate four blueprint-style floor plan options from total area and room count in one click.",
+      gradient: "from-cyan-500 to-sky-500"
     },
     {
       icon: IndianRupee,
@@ -137,8 +143,8 @@ export default function Home() {
             transition={{ duration: 0.8, delay: 0.4 }}
             className="text-xl md:text-2xl mb-10 text-white/90 max-w-3xl mx-auto leading-relaxed font-medium"
           >
-            Design your dream room in minutes. Upload an empty room photo and watch AI bring it to life, 
-            or customize it yourself with our intuitive drag-and-drop interface.
+            Design your dream room in minutes. Upload an empty room photo, draft layout options from square footage,
+            or customize everything yourself with our intuitive drag-and-drop interface.
           </motion.p>
 
           <motion.div
@@ -167,6 +173,17 @@ export default function Home() {
               >
                 <PaintBucket className="w-6 h-6 mr-2 group-hover:rotate-12 transition-transform" />
                 Customize Manually
+              </motion.div>
+            </Link>
+
+            <Link to="/generate-layout">
+              <motion.div
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="inline-flex items-center px-8 py-4 bg-slate-900/80 border-2 border-cyan-300/30 text-white rounded-2xl font-bold text-lg hover:bg-slate-900 transition-all group"
+              >
+                <Building2 className="w-6 h-6 mr-2 text-cyan-300 group-hover:-rotate-6 transition-transform" />
+                Generate Layout
               </motion.div>
             </Link>
           </motion.div>
@@ -219,14 +236,14 @@ export default function Home() {
             className="text-center mb-16"
           >
             <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
-              Two Powerful Ways to Design
+              Three Powerful Ways to Design
             </h2>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              Choose AI magic for instant results, or take full control with drag-and-drop customization
+              Choose instant AI furnishing, blueprint-style layout generation, or full manual control with drag-and-drop customization
             </p>
           </motion.div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+          <div className="grid grid-cols-1 xl:grid-cols-3 gap-12">
             {/* AI Generation Method */}
             <motion.div
               initial={{ opacity: 0, x: -30 }}
@@ -312,6 +329,95 @@ export default function Home() {
                   >
                     <Sparkles className="w-5 h-5 mr-2 group-hover:rotate-12 transition-transform" />
                     Try AI Generation
+                  </motion.button>
+                </Link>
+              </div>
+            </motion.div>
+
+            {/* 2D Layout Generation Method */}
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.8, delay: 0.05 }}
+              className="relative h-full"
+            >
+              <div className="bg-gradient-to-br from-cyan-50 to-sky-50 p-8 rounded-2xl border-2 border-cyan-200 shadow-xl h-full flex flex-col">
+                <div className="flex items-center mb-6">
+                  <div className="w-12 h-12 bg-cyan-600 rounded-xl flex items-center justify-center mr-4">
+                    <Building2 className="w-6 h-6 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-2xl font-bold text-gray-900">2D Layouts</h3>
+                    <p className="text-cyan-700 font-semibold">Fast Concept Planning</p>
+                  </div>
+                </div>
+
+                <div className="mb-6 grid grid-cols-2 gap-3">
+                  <div className="rounded-xl border-2 border-slate-300 bg-white p-4">
+                    <div className="text-xs font-bold uppercase tracking-[0.2em] text-slate-500 mb-3">
+                      Inputs
+                    </div>
+                    <div className="space-y-3 text-sm text-slate-600">
+                      <div className="rounded-lg bg-slate-100 px-3 py-2 font-semibold text-slate-800">1200 sq ft</div>
+                      <div className="rounded-lg bg-slate-100 px-3 py-2 font-semibold text-slate-800">2 BHK</div>
+                      <div className="rounded-lg bg-slate-100 px-3 py-2 font-semibold text-slate-800">AI decides zoning</div>
+                    </div>
+                  </div>
+                  <div className="rounded-xl border-2 border-cyan-300 bg-white p-4 shadow-lg">
+                    <div className="text-xs font-bold uppercase tracking-[0.2em] text-cyan-700 mb-3">
+                      Output
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      {[1, 2, 3, 4].map((plan) => (
+                        <div key={plan} className="aspect-square rounded-lg border border-slate-300 bg-[linear-gradient(135deg,#ffffff,#f1f5f9)] p-2">
+                          <div className="h-full w-full rounded border-2 border-slate-800 border-dashed" />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-4 mb-6 flex-grow">
+                  <div className="flex items-start bg-white p-4 rounded-xl shadow">
+                    <div className="w-8 h-8 bg-cyan-600 text-white rounded-full flex items-center justify-center text-sm font-bold mr-3 flex-shrink-0">
+                      1
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-gray-900 mb-1">Enter Area & Room Count</h4>
+                      <p className="text-sm text-gray-600">Set the total footprint and optionally pin the BHK requirement.</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start bg-white p-4 rounded-xl shadow">
+                    <div className="w-8 h-8 bg-cyan-600 text-white rounded-full flex items-center justify-center text-sm font-bold mr-3 flex-shrink-0">
+                      2
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-gray-900 mb-1">Generate 4 Variations</h4>
+                      <p className="text-sm text-gray-600">Compare multiple plan directions in one response instead of iterating one by one.</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start bg-white p-4 rounded-xl shadow">
+                    <div className="w-8 h-8 bg-cyan-600 text-white rounded-full flex items-center justify-center text-sm font-bold mr-3 flex-shrink-0">
+                      3
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-gray-900 mb-1">Download the Best Option</h4>
+                      <p className="text-sm text-gray-600">Export any PNG floor plan and take it into the next design review.</p>
+                    </div>
+                  </div>
+                </div>
+
+                <Link to="/generate-layout">
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    className="w-full bg-cyan-600 text-white py-3 rounded-xl font-semibold hover:bg-cyan-700 transition-colors flex items-center justify-center group mt-auto"
+                  >
+                    <Building2 className="w-5 h-5 mr-2 group-hover:-rotate-6 transition-transform" />
+                    Generate Layouts
                   </motion.button>
                 </Link>
               </div>

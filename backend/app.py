@@ -1,13 +1,16 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-import os
 import base64
+import gc
 from io import BytesIO
-from PIL import Image
-import torch
-from diffusers import StableDiffusionImg2ImgPipeline
+import os
 import random
 import re
+import threading
+
+from PIL import Image, ImageDraw
+import torch
+from diffusers import StableDiffusionImg2ImgPipeline, StableDiffusionPipeline
 
 app = Flask(__name__)
 CORS(app)
@@ -21,7 +24,7 @@ os.makedirs(GENERATED_FOLDER, exist_ok=True)
 # Model Configuration
 MODEL_ID = "SG161222/Realistic_Vision_V5.1_noVAE"
 device = "cuda" if torch.cuda.is_available() else "cpu"
-USE_LOCAL_MODEL = True  # Set to True to load model locally (optimized for RTX 3050)
+USE_LOCAL_MODEL = os.environ.get("USE_LOCAL_MODEL", "true").lower() != "false"
 
 # Hugging Face token (get from: https://huggingface.co/settings/tokens)
 HF_TOKEN = os.environ.get("HF_TOKEN", None)  # Set as environment variable or paste here
@@ -31,14 +34,14 @@ HF_TOKEN = os.environ.get("HF_TOKEN", None)  # Set as environment variable or pa
 # Load model only if local mode is enabled
 pipe = None
 if USE_LOCAL_MODEL:
-    print(f"⏳ Loading model on {device}...")
+    print(f"Loading model on {device}...")
     if device == "cpu":
-        print("⚠️ WARNING: Running on CPU will be VERY slow (30-60 seconds per image)")
-        print("💡 Recommended: Use GPU or set USE_LOCAL_MODEL=False")
+        print("WARNING: Running on CPU will be VERY slow (30-60 seconds per image)")
+        print("Recommended: Use GPU or set USE_LOCAL_MODEL=False")
     
     try:
         # RTX 3050 6GB Optimizations
-        print("🎮 Optimizing for RTX 3050 (6GB VRAM)...")
+        print("Optimizing for RTX 3050 (6GB VRAM)...")
 
         my_dtype = torch.float16 if device == "cuda" else torch.float32
         
@@ -58,44 +61,262 @@ if USE_LOCAL_MODEL:
             # Enable memory optimizations
             try:
                 pipe.enable_xformers_memory_efficient_attention()
-                print("✅ xFormers memory efficient attention enabled")
+                print("xFormers memory efficient attention enabled")
             except:
-                print("⚠ xFormers not available, using standard attention")
+                print("xFormers not available, using standard attention")
             
             # Enable model CPU offload for 6GB VRAM
             try:
                 pipe.enable_model_cpu_offload()
-                print("✅ Model CPU offload enabled (saves VRAM)")
+                print("Model CPU offload enabled (saves VRAM)")
             except:
-                print("⚠ CPU offload not available")
+                pipe = pipe.to(device)
+                print("CPU offload not available")
             
             # Enable attention slicing (reduces memory usage)
             try:
                 pipe.enable_attention_slicing(1)
-                print("✅ Attention slicing enabled")
+                print("Attention slicing enabled")
             except:
                 pass
             
             # Enable VAE slicing
             try:
                 pipe.enable_vae_slicing()
-                print("✅ VAE slicing enabled")
+                print("VAE slicing enabled")
             except:
                 pass
         
-        print(f"✅ Model loaded successfully on {device}")
-        print(f"💾 VRAM usage optimized for 6GB GPU")
+        print(f"Model loaded successfully on {device}")
+        print("VRAM usage optimized for 6GB GPU")
         
     except Exception as e:
-        print(f"❌ Model loading failed: {e}")
-        print("💡 Make sure you have:")
+        print(f"Model loading failed: {e}")
+        print("Make sure you have:")
         print("   1. Installed PyTorch with CUDA support")
         print("   2. Set your Hugging Face token (HF_TOKEN)")
         print("   3. Enough disk space (~7GB for model)")
         import traceback
         traceback.print_exc()
 else:
-    print("📡 Local model disabled. Demo mode active.")
+    print("Local model disabled. Demo mode active.")
+
+THREE_D_MODEL_ID = MODEL_ID
+LAYOUT_MODEL_ID = os.environ.get("LAYOUT_MODEL_ID", "runwayml/stable-diffusion-v1-5")
+FLOORPLAN_LORA_ID = os.environ.get("FLOORPLAN_LORA_ID")
+FLOORPLAN_LORA_WEIGHT_NAME = os.environ.get("FLOORPLAN_LORA_WEIGHT_NAME")
+LAYOUT_IMAGE_SIZE = int(os.environ.get("LAYOUT_IMAGE_SIZE", 512))
+
+# Future fine-tuning will use the CUBI700 sample structure.
+CUBI700_DATASET_HINT = {
+    "image": "layout image",
+    "boundary": "outer boundary mask",
+    "rooms": "room polygons / classes",
+    "doors": "door annotations",
+    "windows": "window annotations",
+}
+
+LAYOUT_STYLE_TOKENS = (
+    "(floor-plane, 2D architectural floor plan, top-down view, blueprint style, professional CAD drawing, "
+    "high contrast, sharp lines, detailed furniture layout, vector graphics, black and white)"
+)
+LAYOUT_NEGATIVE_PROMPT = (
+    "photorealistic, 3d render, perspective view, isometric, color, watercolor, painterly, "
+    "soft shading, blurry, noisy, low contrast, text, labels, watermark, people"
+)
+LAYOUT_ROOM_COUNT_MAP = {
+    "1 BHK": "1 bedroom hall kitchen apartment layout with 1 bathroom",
+    "2 BHK": "2 bedroom hall kitchen apartment layout with 2 bathrooms",
+    "3 BHK": "3 bedroom hall kitchen apartment layout with 2 bathrooms",
+    "4 BHK": "4 bedroom hall kitchen apartment layout with 3 bathrooms",
+    "Studio": "studio apartment layout with integrated sleeping and living zones",
+    "Villa": "villa-style residential layout with generous circulation",
+}
+
+design_pipe = pipe
+layout_pipe = None
+layout_lora_loaded = False
+active_pipeline_name = "design" if design_pipe is not None else None
+inference_lock = threading.Lock()
+
+
+def get_model_dtype():
+    return torch.float16 if device == "cuda" else torch.float32
+
+
+def optimize_pipeline(pipeline, pipeline_name):
+    if device == "cuda":
+        try:
+            pipeline.enable_xformers_memory_efficient_attention()
+            print(f"[{pipeline_name}] xFormers enabled")
+        except Exception:
+            print(f"[{pipeline_name}] xFormers unavailable, using standard attention")
+
+        try:
+            pipeline.enable_attention_slicing()
+            print(f"[{pipeline_name}] attention slicing enabled")
+        except Exception:
+            pass
+
+        try:
+            pipeline.enable_vae_slicing()
+            print(f"[{pipeline_name}] VAE slicing enabled")
+        except Exception:
+            pass
+
+    return pipeline
+
+
+def move_pipeline(pipeline, target_device):
+    if pipeline is None:
+        return
+
+    pipeline.to(target_device)
+
+
+def activate_pipeline(target_name):
+    global active_pipeline_name
+
+    if device != "cuda":
+        return
+
+    if target_name == active_pipeline_name:
+        return
+
+    if target_name == "layout":
+        if design_pipe is not None:
+            move_pipeline(design_pipe, "cpu")
+        gc.collect()
+        torch.cuda.empty_cache()
+        if layout_pipe is not None:
+            move_pipeline(layout_pipe, device)
+    elif target_name == "design":
+        if layout_pipe is not None:
+            move_pipeline(layout_pipe, "cpu")
+        gc.collect()
+        torch.cuda.empty_cache()
+        if design_pipe is not None:
+            move_pipeline(design_pipe, device)
+
+    active_pipeline_name = target_name
+
+
+def load_layout_pipeline():
+    global layout_pipe, layout_lora_loaded
+
+    if not USE_LOCAL_MODEL:
+        return None
+
+    print("Loading 2D layout model...")
+    layout_pipe = StableDiffusionPipeline.from_pretrained(
+        LAYOUT_MODEL_ID,
+        torch_dtype=get_model_dtype(),
+        use_auth_token=HF_TOKEN,
+        low_cpu_mem_usage=True,
+        safety_checker=None,
+        requires_safety_checker=False
+    )
+    layout_pipe = optimize_pipeline(layout_pipe, "2D")
+
+    if device == "cuda":
+        move_pipeline(layout_pipe, "cpu")
+    else:
+        layout_pipe = layout_pipe.to(device)
+
+    if FLOORPLAN_LORA_ID:
+        lora_kwargs = {}
+        if FLOORPLAN_LORA_WEIGHT_NAME:
+            lora_kwargs["weight_name"] = FLOORPLAN_LORA_WEIGHT_NAME
+
+        layout_pipe.load_lora_weights(FLOORPLAN_LORA_ID, **lora_kwargs)
+        layout_lora_loaded = True
+        print(f"Floor plan LoRA loaded from {FLOORPLAN_LORA_ID}")
+    else:
+        print("Floor plan LoRA not configured. Set FLOORPLAN_LORA_ID to improve 2D outputs.")
+
+    return layout_pipe
+
+
+def image_to_base64(image):
+    buffered = BytesIO()
+    image.save(buffered, format="PNG")
+    img_str = base64.b64encode(buffered.getvalue()).decode()
+    return f"data:image/png;base64,{img_str}"
+
+
+def create_demo_layout(total_area, room_count, variant_index):
+    image = Image.new("RGB", (LAYOUT_IMAGE_SIZE, LAYOUT_IMAGE_SIZE), "white")
+    draw = ImageDraw.Draw(image)
+    padding = 32
+    width = LAYOUT_IMAGE_SIZE
+    height = LAYOUT_IMAGE_SIZE
+    draw.rectangle((padding, padding, width - padding, height - padding), outline="black", width=7)
+
+    base_variants = [
+        [
+            (padding + 150, padding, padding + 150, height - padding),
+            (padding + 150, padding + 210, width - padding, padding + 210),
+            (padding + 330, padding + 210, padding + 330, height - padding),
+        ],
+        [
+            (padding + 200, padding, padding + 200, height - padding - 120),
+            (padding, padding + 170, width - padding - 120, padding + 170),
+            (padding + 360, padding + 170, padding + 360, height - padding),
+        ],
+        [
+            (padding + 180, padding, padding + 180, height - padding),
+            (padding + 180, padding + 150, width - padding, padding + 150),
+            (padding + 320, padding + 150, padding + 320, height - padding),
+            (padding, padding + 310, padding + 180, padding + 310),
+        ],
+        [
+            (padding + 210, padding, padding + 210, height - padding),
+            (padding, padding + 185, width - padding, padding + 185),
+            (padding + 365, padding + 185, padding + 365, height - padding),
+        ],
+    ]
+
+    for line in base_variants[variant_index % len(base_variants)]:
+        draw.line(line, fill="black", width=5)
+
+    doorway_offsets = [110, 160, 210, 260]
+    offset = doorway_offsets[variant_index % len(doorway_offsets)]
+    draw.line((padding + offset, padding, padding + offset + 46, padding), fill="white", width=8)
+    draw.arc((padding + offset - 50, padding - 8, padding + offset + 42, padding + 84), 0, 90, fill="black", width=3)
+
+    furniture_blocks = [
+        (padding + 55, padding + 55, padding + 125, padding + 135),
+        (padding + 240, padding + 60, padding + 320, padding + 125),
+        (padding + 240, padding + 265, padding + 300, padding + 330),
+        (padding + 390, padding + 265, padding + 450, padding + 325),
+    ]
+    for furniture in furniture_blocks:
+        draw.rectangle(furniture, outline="black", width=3)
+
+    meta_text = f"{total_area} sq ft"
+    if room_count:
+        meta_text = f"{meta_text} | {room_count}"
+    draw.text((padding + 12, height - padding - 24), meta_text, fill="black")
+    draw.text((width - padding - 92, padding + 12), f"Plan {variant_index + 1}", fill="black")
+    return image
+
+
+def build_layout_prompt(total_area, room_count):
+    normalized_room_count = (room_count or "").strip()
+    room_guidance = LAYOUT_ROOM_COUNT_MAP.get(normalized_room_count, "optimized residential layout")
+    return (
+        f"{LAYOUT_STYLE_TOKENS}, {total_area} sq ft residence, {room_guidance}, "
+        f"efficient circulation, clear room adjacency, accurate walls, doors and windows, "
+        f"coherent zoning, furnish each room appropriately"
+    )
+
+
+if USE_LOCAL_MODEL:
+    try:
+        load_layout_pipeline()
+    except Exception as exc:
+        print(f"2D layout model loading failed: {exc}")
+        layout_pipe = None
 
 # Furniture pricing database (in Indian Rupees)
 FURNITURE_PRICES = {
@@ -557,55 +778,113 @@ def generate_room():
             )
         
         # Generate image
-        if USE_LOCAL_MODEL and pipe is not None:
-            print(f"🎨 Generating with local model on {device}...")
-            print(f"💬 Full Prompt: {full_prompt}")
-            print(f"🚫 Negative: {negative_prompt[:80]}...")
+        if USE_LOCAL_MODEL and design_pipe is not None:
+            print(f"Generating with local model on {device}...")
+            print(f"Full Prompt: {full_prompt}")
+            print(f"Negative: {negative_prompt[:80]}...")
             
             if device == "cpu":
-                print("⏳ This will take 30-60 seconds on CPU...")
+                print("This will take 30-60 seconds on CPU...")
             
             # Generate with settings that ADD furniture clearly
             # Higher strength = more changes to image (furniture will appear)
             # Higher guidance = follow prompt more strictly
-            generated_image = pipe(
-                prompt=full_prompt,
-                negative_prompt=negative_prompt,
-                image=input_image,
-                strength=0.75,           # INCREASED to 0.75 - will add furniture more visibly
-                guidance_scale=12.0,     # Balanced guidance for natural results
-                num_inference_steps=50   # 50 steps is sufficient
-            ).images[0]
+            with inference_lock:
+                activate_pipeline("design")
+                generated_image = design_pipe(
+                    prompt=full_prompt,
+                    negative_prompt=negative_prompt,
+                    image=input_image,
+                    strength=0.75,
+                    guidance_scale=12.0,
+                    num_inference_steps=50
+                ).images[0]
             
             # Clear GPU cache after generation
             if device == "cuda":
                 torch.cuda.empty_cache()
-                print("🧹 GPU cache cleared")
+                print("GPU cache cleared")
             
-            print("✅ Generation complete!")
+            print("Generation complete!")
         else:
             # Demo mode: Return enhanced original image with overlay
-            print("📸 Demo mode: Returning processed input image")
+            print("Demo mode: Returning processed input image")
             generated_image = input_image
             # You could add simple PIL filters here for demo purposes
-        
-        # Convert to base64
-        buffered = BytesIO()
-        generated_image.save(buffered, format="PNG")
-        img_str = base64.b64encode(buffered.getvalue()).decode()
         
         # Use previously calculated pricing
         pricing = pricing_preview
         
         return jsonify({
-            'image': f'data:image/png;base64,{img_str}',
+            'image': image_to_base64(generated_image),
             'pricing': pricing,
-            'message': 'Image generated successfully' if USE_LOCAL_MODEL else 'Demo mode active',
-            'mode': 'local' if USE_LOCAL_MODEL else 'demo'
+            'message': 'Image generated successfully' if USE_LOCAL_MODEL and design_pipe is not None else 'Demo mode active',
+            'mode': 'local' if USE_LOCAL_MODEL and design_pipe is not None else 'demo'
         })
         
     except Exception as e:
         print(f"Error: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/generate-layout', methods=['POST'])
+def generate_layout():
+    try:
+        data = request.get_json(silent=True) or {}
+        total_area = data.get('total_area')
+        room_count = data.get('room_count')
+
+        if total_area in (None, ''):
+            return jsonify({'error': 'Total area is required'}), 400
+
+        try:
+            total_area = int(float(total_area))
+        except (TypeError, ValueError):
+            return jsonify({'error': 'Total area must be a valid number'}), 400
+
+        if total_area <= 0:
+            return jsonify({'error': 'Total area must be greater than 0'}), 400
+
+        normalized_room_count = (room_count or '').strip()
+        if normalized_room_count.lower() == 'let ai decide':
+            normalized_room_count = ''
+
+        layout_prompt = build_layout_prompt(total_area, normalized_room_count)
+
+        if USE_LOCAL_MODEL and layout_pipe is not None:
+            with inference_lock:
+                activate_pipeline("layout")
+                result = layout_pipe(
+                    prompt=layout_prompt,
+                    negative_prompt=LAYOUT_NEGATIVE_PROMPT,
+                    num_images_per_prompt=4,
+                    num_inference_steps=30,
+                    guidance_scale=8.5,
+                    height=LAYOUT_IMAGE_SIZE,
+                    width=LAYOUT_IMAGE_SIZE
+                )
+                layouts = result.images
+
+            if device == "cuda":
+                torch.cuda.empty_cache()
+        else:
+            layouts = [
+                create_demo_layout(total_area, normalized_room_count, variant_index)
+                for variant_index in range(4)
+            ]
+
+        return jsonify({
+            'images': [image_to_base64(layout) for layout in layouts],
+            'prompt': layout_prompt,
+            'message': '4 layout options generated successfully' if USE_LOCAL_MODEL and layout_pipe is not None else 'Demo layout mode active',
+            'mode': 'local' if USE_LOCAL_MODEL and layout_pipe is not None else 'demo',
+            'layout_model': LAYOUT_MODEL_ID,
+            'layout_lora_loaded': layout_lora_loaded,
+            'dataset_hint': CUBI700_DATASET_HINT
+        }), 200
+
+    except Exception as e:
+        print(f"Layout generation error: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/health', methods=['GET'])
@@ -613,21 +892,26 @@ def health_check():
     return jsonify({
         'status': 'healthy',
         'device': device,
-        'model': MODEL_ID,
+        'model': THREE_D_MODEL_ID,
+        'layout_model': LAYOUT_MODEL_ID,
         'mode': 'local' if USE_LOCAL_MODEL else 'demo',
-        'gpu_available': torch.cuda.is_available()
+        'gpu_available': torch.cuda.is_available(),
+        'layout_lora_loaded': layout_lora_loaded,
+        'layout_ready': layout_pipe is not None
     })
 
 if __name__ == '__main__':
     print("\n" + "="*60)
-    print("🏠 HOMELYTICS BACKEND SERVER")
+    print("HOMELYTICS BACKEND SERVER")
     print("="*60)
     print(f"Device: {device}")
-    print(f"Model: {MODEL_ID}")
-    print(f"Local Model: {'Loaded' if USE_LOCAL_MODEL and pipe else 'Disabled (Demo Mode)'}")
+    print(f"3D Model: {THREE_D_MODEL_ID}")
+    print(f"2D Model: {LAYOUT_MODEL_ID}")
+    print(f"Local Model: {'Loaded' if USE_LOCAL_MODEL and design_pipe else 'Disabled (Demo Mode)'}")
+    print(f"Layout Model: {'Loaded' if layout_pipe else 'Unavailable'}")
     if device == "cpu" and USE_LOCAL_MODEL:
-        print("\n⚠️  WARNING: Running on CPU!")
-        print("💡 For fast generation:")
+        print("\nWARNING: Running on CPU!")
+        print("For fast generation:")
         print("   Option 1: Use NVIDIA GPU (recommended)")
         print("   Option 2: Rent cloud GPU (RunPod, Paperspace, etc.)")
         print("   Option 3: Set USE_LOCAL_MODEL=False for demo mode")
