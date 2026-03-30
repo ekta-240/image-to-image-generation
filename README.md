@@ -6,6 +6,9 @@ Transform your room ideas into stunning visualizations using AI-powered image ge
 
 ### 🎨 AI-Powered Generation
 - **Local GPU Processing**: Runs on your NVIDIA GPU (RTX 3050/3060/4060+) - no cloud dependency
+- **2D Layout Generator**: Converts Total Area + Room Count input into 4 distinct professional, top-down architectural floor plans in blueprint style using Stable Diffusion v1.5 and a FloorPlan LoRA adapter.
+- **Style Enforcement**: Uses Hardcoded layout tokens + LoRA for black-and-white CAD-like lines, room divisions, and clean architectural precision.
+- **Hardware Optimization**: Tuned for 6GB RTX 3050 with torch.float16, model CPU offload, attention slicing, and VAE slicing to avoid OOM.
 - **Structure Preservation**: Maintains your room's architecture (walls, windows, layout) while adding furniture
 - **Multiple Styles**: Modern, Contemporary, Minimalist, Industrial, Bohemian, Scandinavian, Traditional, Rustic
 - **Room Types**: Living Room, Bedroom, Kitchen, Bathroom, Office, Dining Room, Kids Room, Outdoor
