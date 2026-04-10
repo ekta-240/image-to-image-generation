@@ -44,6 +44,16 @@ HF_TOKEN = os.environ.get("HF_TOKEN", None)  # Set as environment variable or pa
 GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "YOUR_GROQ_API_KEY")
 # ────────────────────────────────────────────────────────────────────
 
+
+def is_valid_groq_key(api_key):
+    """Return True only when a non-placeholder Groq key is configured."""
+    key = (api_key or "").strip()
+    if not key:
+        return False
+    if key == "YOUR_GROQ_API_KEY":
+        return False
+    return key.startswith("gsk_")
+
 # ─── IMPROVEMENT 1: Negative Prompt ────────────────────────────────
 NEGATIVE_PROMPT = (
     "people, person, human figure, cartoon, anime, blurry, watermark, text, logo, "
@@ -64,6 +74,25 @@ def build_structured_prompt(user_prompt, room_type, style):
         f"realistic materials and textures, architectural digest style"
     )
 
+def is_already_structured_prompt(prompt_text):
+    """Detect whether input prompt already looks like an SD-style structured prompt."""
+    p = (prompt_text or "").lower()
+    markers = [
+        "interior design photograph",
+        "photorealistic",
+        "architectural digest style",
+        "professionally staged",
+    ]
+    return any(marker in p for marker in markers)
+
+
+def shorten_prompt_for_clip(prompt_text, max_words=70):
+    """Keep prompt under CLIP token pressure so key furniture terms are not truncated."""
+    words = (prompt_text or "").split()
+    if len(words) <= max_words:
+        return prompt_text
+    return " ".join(words[:max_words])
+
 
 # ─── IMPROVEMENT 4: Furniture Extraction & Enforcement ─────────────
 FURNITURE_KEYWORDS = [
@@ -76,10 +105,12 @@ FURNITURE_KEYWORDS = [
 
 def extract_furniture_items(prompt):
     """Extract recognized furniture keywords from the user prompt."""
-    prompt_lower = prompt.lower()
+    prompt_lower = (prompt or "").lower().replace("_", " ")
     found_items = []
     for item in FURNITURE_KEYWORDS:
-        if item in prompt_lower:
+        item_pattern = re.escape(item).replace("\\ ", r"\\s+")
+        # Match singular/plural forms (e.g., sofa/sofas, lamp/lamps)
+        if re.search(rf"\b{item_pattern}s?\b", prompt_lower):
             found_items.append(item)
     return found_items
 
@@ -90,10 +121,11 @@ def enforce_furniture_in_prompt(base_prompt, furniture_items):
         return base_prompt
     items_string = ", ".join(furniture_items)
     enforcement = (
-        f" The room must clearly contain all of these items: {items_string}. "
-        f"Each item must be fully visible and properly placed."
+        f" Must include: {items_string}. "
+        f"All listed furniture clearly visible."
     )
-    return base_prompt + enforcement
+    # Keep enforcement first so it survives CLIP prompt truncation.
+    return enforcement + " " + base_prompt
 
 
 # ─── IMPROVEMENT 2: ControlNet + Depth Map Pipeline ────────────────
@@ -784,8 +816,8 @@ def generate_with_controlnet(image_pil, prompt, negative_prompt, strength=0.70):
         control_image=depth_image,
         strength=strength,
         num_inference_steps=50,
-        guidance_scale=7.5,
-        controlnet_conditioning_scale=0.8,
+        guidance_scale=8.5,
+        controlnet_conditioning_scale=0.45,
     ).images[0]
 
     return result
@@ -799,7 +831,7 @@ def two_stage_generation(image_pil, prompt, negative_prompt):
     """
     # Stage 1: Main generation with ControlNet (high strength)
     stage1_result = generate_with_controlnet(
-        image_pil, prompt, negative_prompt, strength=0.70
+        image_pil, prompt, negative_prompt, strength=0.82
     )
 
     # Stage 2: Detail refinement pass (very low strength — only adds detail)
@@ -811,10 +843,10 @@ def two_stage_generation(image_pil, prompt, negative_prompt):
         negative_prompt=negative_prompt,
         image=stage1_result,
         control_image=depth_estimator(stage1_result),
-        strength=0.25,
+        strength=0.18,
         num_inference_steps=30,
-        guidance_scale=7.5,
-        controlnet_conditioning_scale=0.3,
+        guidance_scale=8.0,
+        controlnet_conditioning_scale=0.2,
     ).images[0]
 
     return stage2_result
@@ -858,6 +890,16 @@ def improve_prompt():
     if not user_prompt.strip():
         return jsonify({"error": "Prompt cannot be empty"}), 400
 
+    # Fast path: if API key is missing/placeholder, provide local improvement.
+    if not is_valid_groq_key(GROQ_API_KEY):
+        fallback = build_structured_prompt(user_prompt.strip(), room_type, style)
+        return jsonify({
+            "improved_prompt": fallback,
+            "original_prompt": user_prompt,
+            "source": "local-fallback",
+            "warning": "Groq API key is missing or invalid. Using local prompt enhancement.",
+        })
+
     try:
         groq_response = req.post(
             "https://api.groq.com/openai/v1/chat/completions",
@@ -866,7 +908,7 @@ def improve_prompt():
                 "Content-Type": "application/json",
             },
             json={
-                "model": "llama3-8b-8192",
+                    "model": "llama-3.1-8b-instant",
                 "messages": [
                     {
                         "role": "system",
@@ -892,16 +934,21 @@ def improve_prompt():
 
         groq_response.raise_for_status()
         improved = groq_response.json()["choices"][0]["message"]["content"]
-        return jsonify({"improved_prompt": improved, "original_prompt": user_prompt})
+        return jsonify({
+            "improved_prompt": improved,
+            "original_prompt": user_prompt,
+            "source": "groq",
+        })
 
     except Exception as e:
         print(f"Groq API error: {e}")
         # Fallback: return a locally-built structured prompt
-        fallback = build_structured_prompt(user_prompt, room_type, style)
+        fallback = build_structured_prompt(user_prompt.strip(), room_type, style)
         return jsonify({
             "improved_prompt": fallback,
             "original_prompt": user_prompt,
-            "warning": "Groq API unavailable, used local prompt builder instead.",
+            "source": "local-fallback",
+            "warning": "Groq API unavailable, using local prompt enhancement.",
         })
 
 
@@ -928,11 +975,16 @@ def generate_room():
         prompt_clean = prompt.strip()
 
         # Step 1: Build the structured prompt
-        structured_prompt = build_structured_prompt(prompt_clean, room_name, style)
+        # Step 1: Build structured prompt only when needed.
+        if is_already_structured_prompt(prompt_clean):
+            structured_prompt = prompt_clean
+        else:
+            structured_prompt = build_structured_prompt(prompt_clean, room_name, style)
 
         # Step 2: Extract and enforce furniture items
         furniture_items = extract_furniture_items(prompt_clean)
         final_prompt = enforce_furniture_in_prompt(structured_prompt, furniture_items)
+        final_prompt = shorten_prompt_for_clip(final_prompt, max_words=70)
 
         # Use the global negative prompt (Improvement 1)
         negative = NEGATIVE_PROMPT
@@ -1017,8 +1069,8 @@ def generate_layout():
                     num_images_per_prompt=4,
                     num_inference_steps=30,
                     guidance_scale=8.5,
+                    width=LAYOUT_IMAGE_SIZE,
                     height=LAYOUT_IMAGE_SIZE,
-                    width=LAYOUT_IMAGE_SIZE
                 )
                 layouts = result.images
 

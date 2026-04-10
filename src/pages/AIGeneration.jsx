@@ -248,6 +248,15 @@ export default function AIGeneration() {
         alert('Prompt improvement failed: ' + data.error)
         return
       }
+
+      if (data.warning) {
+        alert(data.warning)
+      }
+
+      if (!data.improved_prompt || data.improved_prompt.trim() === prompt.trim()) {
+        alert('Prompt improvement returned no visible changes. Check Groq API key configuration or try a more specific prompt.')
+      }
+
       setOriginalPrompt(prompt)
       setPrompt(data.improved_prompt)
     } catch (err) {
