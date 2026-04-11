@@ -173,7 +173,7 @@ export default function LayoutGenerator() {
               <div>
                 <h2 className="text-2xl font-bold text-slate-900">Generated Options</h2>
                 <p className="text-sm text-slate-500">
-                  The API returns four PNG layouts as base64 strings and each card can be downloaded directly.
+                  {/* The API returns four PNG layouts as base64 strings and each card can be downloaded directly. */}
                 </p>
               </div>
               {promptUsed && (
