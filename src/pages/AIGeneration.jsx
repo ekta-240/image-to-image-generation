@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react'
 import { useDropzone } from 'react-dropzone'
 import { motion } from 'framer-motion'
-import { Upload, Sparkles, Loader2, Download, Share2, IndianRupee, Wand2 } from 'lucide-react'
+import { Upload, Sparkles, Loader2, Download, Share2, IndianRupee } from 'lucide-react'
 import axios from 'axios'
 
 // Utility to convert data URI to blob URL for better performance
@@ -122,10 +122,7 @@ export default function AIGeneration() {
   const [budgetSuggestions, setBudgetSuggestions] = useState(null)
   const [roomDimensions, setRoomDimensions] = useState({ length: '', width: '', height: '' })
 
-  // ── IMPROVEMENT 6: Prompt improvement states ──
-  const [isImprovingPrompt, setIsImprovingPrompt] = useState(false)
-  const [originalPrompt, setOriginalPrompt] = useState(null)
-
+    
   // ── IMPROVEMENT 7: Before/After comparison state ──
   const [originalImage, setOriginalImage] = useState(null)
   const [showComparison, setShowComparison] = useState(false)
@@ -201,14 +198,14 @@ export default function AIGeneration() {
       const suggestions = response.data.suggestions
       setBudgetSuggestions(suggestions)
       setShowBudgetSuggestions(true)
-      
+
       // Auto-populate prompt with suggested furniture (using clean names)
       if (suggestions && suggestions.items && suggestions.items.length > 0) {
         const furnitureNames = suggestions.items
           .map(item => item.key || item.name.replace(/^(Modern |Office |Dining |Window |Decorative |Area |Floor |Table |Custom: )/i, ''))
           .join(', ')
         setPrompt(furnitureNames)
-        
+
         // Scroll to prompt section to show it's been filled
         setTimeout(() => {
           const promptElement = document.querySelector('textarea[placeholder*="Budget suggestions"]')
@@ -218,52 +215,9 @@ export default function AIGeneration() {
           }
         }, 500)
       }
-      
     } catch (error) {
       console.error('Budget suggestions error:', error)
       alert('Failed to fetch budget suggestions')
-    }
-  }
-
-  // ── IMPROVEMENT 6: Improve Prompt Handler ──
-  const handleImprovePrompt = async () => {
-    if (!prompt.trim()) {
-      alert('Please enter a prompt first!')
-      return
-    }
-
-    setIsImprovingPrompt(true)
-    try {
-      const response = await fetch('http://localhost:5000/improve-prompt', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          prompt: prompt,
-          room_type: roomType.replace('-', ' '),
-          style: style
-        })
-      })
-      const data = await response.json()
-      if (data.error) {
-        alert('Prompt improvement failed: ' + data.error)
-        return
-      }
-
-      if (data.warning) {
-        alert(data.warning)
-      }
-
-      if (!data.improved_prompt || data.improved_prompt.trim() === prompt.trim()) {
-        alert('Prompt improvement returned no visible changes. Check Groq API key configuration or try a more specific prompt.')
-      }
-
-      setOriginalPrompt(prompt)
-      setPrompt(data.improved_prompt)
-    } catch (err) {
-      console.error('Prompt improvement failed:', err)
-      alert('Could not reach the backend. Make sure the server is running.')
-    } finally {
-      setIsImprovingPrompt(false)
     }
   }
 
@@ -272,14 +226,15 @@ export default function AIGeneration() {
       alert('Please upload an image first!')
       return
     }
-    
+
+    let finalPrompt = prompt
+
     // Auto-populate prompt from budget suggestions if no manual prompt
-    if (!prompt && budgetSuggestions && budgetSuggestions.items) {
-      // Use the item keys (e.g., 'table_lamp') instead of display names to ensure exact matching
-      const furnitureKeys = budgetSuggestions.items.map(item => 
+    if (!finalPrompt && budgetSuggestions && budgetSuggestions.items) {
+      finalPrompt = budgetSuggestions.items.map(item => 
         item.key || item.name.replace('Custom: ', '').toLowerCase()
       ).join(', ')
-      setPrompt(furnitureKeys)
+      setPrompt(finalPrompt)
     }
 
     setIsGenerating(true)
@@ -287,7 +242,7 @@ export default function AIGeneration() {
     setGeneratedImageBlobURL(null)
     setEstimatedPrice(null)
     setShowComparison(false)
-    
+
     // Clean up previous blob URL
     if (blobURLRef.current) {
       URL.revokeObjectURL(blobURLRef.current)
@@ -297,13 +252,13 @@ export default function AIGeneration() {
     try {
       const formData = new FormData()
       formData.append('image', image)
-      formData.append('prompt', prompt)
+      formData.append('prompt', finalPrompt)
       formData.append('room_type', roomType)
       formData.append('style', style)
 
       // LOCAL BACKEND: Running on your RTX 3050 GPU
       const BACKEND_URL = 'http://localhost:5000/api/generate'
-      
+
       console.log('Sending generation request...')
       const response = await axios.post(BACKEND_URL, formData, {
         headers: {
@@ -335,11 +290,11 @@ export default function AIGeneration() {
       }
 
       console.log(`Image data received: ${response.data.image.substring(0, 50)}...`)
-      
+
       // Convert data URI to blob URL for better performance
       const blobURL = dataToBlobURL(response.data.image)
       blobURLRef.current = blobURL
-      
+
       setGeneratedImage(response.data.image) // Keep original for download
       setGeneratedImageBlobURL(blobURL) // Use blob URL for display
       setEstimatedPrice(response.data.pricing)
@@ -666,67 +621,21 @@ export default function AIGeneration() {
               )}
             </div>
 
-            {/* Prompt Input + Improve Button (Improvement 6) */}
+            {/* Prompt Input */}
             <div className="bg-white rounded-3xl shadow-lg p-6 border border-gray-100 hover:shadow-2xl transition-all duration-300">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-2xl font-semibold text-gray-900">
                   ✍️ Furniture Items
                 </h2>
-                {/* ── IMPROVEMENT 6: Improve Prompt Button ── */}
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={handleImprovePrompt}
-                  disabled={isImprovingPrompt || !prompt.trim()}
-                  className={`px-4 py-2 rounded-xl font-medium text-sm flex items-center gap-2 transition-all duration-200 shadow-md ${
-                    isImprovingPrompt || !prompt.trim()
-                      ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                      : 'bg-gradient-to-r from-purple-500 to-indigo-600 text-white hover:from-purple-600 hover:to-indigo-700'
-                  }`}
-                >
-                  {isImprovingPrompt ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      Improving...
-                    </>
-                  ) : (
-                    <>
-                      <Wand2 className="w-4 h-4" />
-                      ✨ Improve My Prompt
-                    </>
-                  )}
-                </motion.button>
               </div>
               <textarea
                 value={prompt}
                 onChange={(e) => {
                   setPrompt(e.target.value)
-                  // Clear original prompt display if user edits manually
-                  if (originalPrompt) setOriginalPrompt(null)
                 }}
                 placeholder="Click 'Get Budget Suggestions' above, or manually type: sofa, coffee table, lamp, rug..."
                 className="w-full h-32 px-4 py-3 border-2 border-gray-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none transition-all duration-200 hover:border-blue-300"
               />
-              {/* Show original prompt after improvement (Improvement 6) */}
-              {originalPrompt && (
-                <motion.div
-                  initial={{ opacity: 0, y: -5 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="mt-2 p-3 bg-gray-50 rounded-xl border border-gray-200"
-                >
-                  <p className="text-xs text-gray-400 mb-1 font-medium">Original prompt:</p>
-                  <p className="text-sm text-gray-500 italic">{originalPrompt}</p>
-                  <button
-                    onClick={() => {
-                      setPrompt(originalPrompt)
-                      setOriginalPrompt(null)
-                    }}
-                    className="mt-2 text-xs text-blue-500 hover:text-blue-700 font-medium underline"
-                  >
-                    ↩ Revert to original
-                  </button>
-                </motion.div>
-              )}
             </div>
 
             {/* Generate Button */}

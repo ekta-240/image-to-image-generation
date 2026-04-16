@@ -4,7 +4,7 @@ import Home from './pages/Home'
 import AIGeneration from './pages/AIGeneration'
 import DragDropCustomize from './pages/DragDropCustomize'
 import LayoutGenerator from './pages/LayoutGenerator'
-import Migration from './Migration';
+//import Migration from './Migration';
 
 function App() {
   return (

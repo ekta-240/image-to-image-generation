@@ -4,7 +4,6 @@ import base64
 import gc
 from io import BytesIO
 import os
-import random
 import re
 import threading
 
@@ -16,7 +15,6 @@ from diffusers import (
     ControlNetModel,
 )
 from controlnet_aux import MidasDetector
-import requests as req
 
 app = Flask(__name__)
 CORS(app)
@@ -28,31 +26,10 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(GENERATED_FOLDER, exist_ok=True)
 
 # Model Configuration
-MODEL_ID = "runwayml/stable-diffusion-v1-5"
+MODEL_ID = "SG161222/Realistic_Vision_V5.1_noVAE"
 CONTROLNET_MODEL_ID = "lllyasviel/sd-controlnet-depth"
 device = "cuda" if torch.cuda.is_available() else "cpu"
 USE_LOCAL_MODEL = os.environ.get("USE_LOCAL_MODEL", "true").lower() != "false"
-
-# Hugging Face token (get from: https://huggingface.co/settings/tokens)
-HF_TOKEN = os.environ.get("HF_TOKEN", None)  # Set as environment variable or paste here
-
-# HF_TOKEN = " " # Alternatively, paste your token here
-
-# ─── GROQ API KEY ──────────────────────────────────────────────────
-# FILL IN YOUR GROQ API KEY HERE
-# Get a free key at: https://console.groq.com
-GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "YOUR_GROQ_API_KEY")
-# ────────────────────────────────────────────────────────────────────
-
-
-def is_valid_groq_key(api_key):
-    """Return True only when a non-placeholder Groq key is configured."""
-    key = (api_key or "").strip()
-    if not key:
-        return False
-    if key == "YOUR_GROQ_API_KEY":
-        return False
-    return key.startswith("gsk_")
 
 # ─── IMPROVEMENT 1: Negative Prompt ────────────────────────────────
 NEGATIVE_PROMPT = (
@@ -94,25 +71,96 @@ def shorten_prompt_for_clip(prompt_text, max_words=70):
     return " ".join(words[:max_words])
 
 
+def normalize_prompt_text(text):
+    """Normalize prompt text for keyword matching."""
+    cleaned = (text or "").lower()
+    cleaned = cleaned.replace("_", " ").replace("-", " ")
+    cleaned = re.sub(r"[,/;\n\r]+", " ", cleaned)
+    cleaned = re.sub(r"\s+", " ", cleaned).strip()
+    return cleaned
+
+
 # ─── IMPROVEMENT 4: Furniture Extraction & Enforcement ─────────────
 FURNITURE_KEYWORDS = [
-    "bed", "sofa", "couch", "table", "lamp", "chair", "wardrobe",
-    "bookshelf", "desk", "rug", "curtain", "mirror", "shelf",
-    "cabinet", "dresser", "nightstand", "bench", "stool", "plant",
-    "tv", "television", "fan", "ac", "air conditioner", "painting"
+    "bed",
+    "sofa",
+    "couch",
+    "armchair",
+    "chair",
+    "office chair",
+    "dining chair",
+    "table",
+    "coffee table",
+    "side table",
+    "dining table",
+    "desk",
+    "bookshelf",
+    "tv stand",
+    "television stand",
+    "media console",
+    "lamp",
+    "floor lamp",
+    "table lamp",
+    "rug",
+    "carpet",
+    "curtain",
+    "curtains",
+    "mirror",
+    "shelf",
+    "cabinet",
+    "kitchen cabinet",
+    "wardrobe",
+    "dresser",
+    "nightstand",
+    "bench",
+    "stool",
+    "plant",
+    "artificial plant",
+    "wall art",
+    "painting",
+    "tv",
+    "television",
+    "fan",
+    "ac",
+    "air conditioner",
+    "bathtub",
+    "bath tub",
+    "shower",
+    "sink",
+    "gas stove",
+    "stove",
+    "cooktop",
+    "range",
+    "refrigerator",
+    "fridge",
+    "dishwasher",
+    "microwave",
+    "microwave oven",
+    "oven",
 ]
+
+
+def detect_furniture_items(prompt):
+    """Return canonical furniture keys and matched phrases found in the prompt."""
+    prompt_normalized = normalize_prompt_text(prompt)
+    matched_keys = []
+    matched_phrases = set()
+
+    for item_key, synonyms in FURNITURE_SYNONYMS.items():
+        for synonym in synonyms:
+            pattern = r"(?<!\w)" + re.escape(synonym) + r"(?!\w)"
+            if re.search(pattern, prompt_normalized):
+                matched_keys.append(item_key)
+                matched_phrases.add(synonym)
+                break
+
+    return matched_keys, matched_phrases
 
 
 def extract_furniture_items(prompt):
     """Extract recognized furniture keywords from the user prompt."""
-    prompt_lower = (prompt or "").lower().replace("_", " ")
-    found_items = []
-    for item in FURNITURE_KEYWORDS:
-        item_pattern = re.escape(item).replace("\\ ", r"\\s+")
-        # Match singular/plural forms (e.g., sofa/sofas, lamp/lamps)
-        if re.search(rf"\b{item_pattern}s?\b", prompt_lower):
-            found_items.append(item)
-    return found_items
+    matched_keys, _ = detect_furniture_items(prompt)
+    return [item_key.replace("_", " ") for item_key in matched_keys]
 
 
 def enforce_furniture_in_prompt(base_prompt, furniture_items):
@@ -164,7 +212,6 @@ if USE_LOCAL_MODEL:
             MODEL_ID,
             controlnet=controlnet,
             torch_dtype=my_dtype,
-            use_auth_token=HF_TOKEN,
             low_cpu_mem_usage=True,
             safety_checker=None,
             requires_safety_checker=False,
@@ -208,7 +255,7 @@ if USE_LOCAL_MODEL:
         print(f"Model loading failed: {e}")
         print("Make sure you have:")
         print("   1. Installed PyTorch with CUDA support")
-        print("   2. Set your Hugging Face token (HF_TOKEN)")
+        print("   2. Ensure the model files are available locally")
         print("   3. Enough disk space (~7GB for model)")
         import traceback
         traceback.print_exc()
@@ -232,11 +279,12 @@ CUBI700_DATASET_HINT = {
 
 LAYOUT_STYLE_TOKENS = (
     "(floor-plane, 2D architectural floor plan, top-down view, blueprint style, professional CAD drawing, "
-    "high contrast, sharp lines, detailed furniture layout, vector graphics, black and white)"
+    "high contrast, sharp lines, detailed furniture layout, vector graphics, black and white, "
+    "clear room labels, labeled rooms, readable room names)"
 )
 LAYOUT_NEGATIVE_PROMPT = (
     "photorealistic, 3d render, perspective view, isometric, color, watercolor, painterly, "
-    "soft shading, blurry, noisy, low contrast, text, labels, watermark, people"
+    "soft shading, blurry, noisy, low contrast, watermark, people"
 )
 LAYOUT_ROOM_COUNT_MAP = {
     "1 BHK": "1 bedroom hall kitchen apartment layout with 1 bathroom",
@@ -325,7 +373,6 @@ def load_layout_pipeline():
     layout_pipe = StableDiffusionPipeline.from_pretrained(
         LAYOUT_MODEL_ID,
         torch_dtype=get_model_dtype(),
-        use_auth_token=HF_TOKEN,
         low_cpu_mem_usage=True,
         safety_checker=None,
         requires_safety_checker=False
@@ -421,7 +468,8 @@ def build_layout_prompt(total_area, room_count):
     return (
         f"{LAYOUT_STYLE_TOKENS}, {total_area} sq ft residence, {room_guidance}, "
         f"efficient circulation, clear room adjacency, accurate walls, doors and windows, "
-        f"coherent zoning, furnish each room appropriately"
+        f"coherent zoning, label each room clearly (Bedroom, Kitchen, Living, Bath), "
+        f"furnish each room appropriately"
     )
 
 
@@ -434,35 +482,83 @@ if USE_LOCAL_MODEL:
 
 # Furniture pricing database (in Indian Rupees)
 FURNITURE_PRICES = {
-    'sofa': {'name': 'Modern Sofa', 'price': 107800},
-    'armchair': {'name': 'Armchair', 'price': 41400},
-    'coffee_table': {'name': 'Coffee Table', 'price': 29000},
-    'side_table': {'name': 'Side Table', 'price': 16500},
-    'floor_lamp': {'name': 'Floor Lamp', 'price': 19000},
-    'table_lamp': {'name': 'Table Lamp', 'price': 7400},
-    'bed': {'name': 'Bed', 'price': 157600},
-    'nightstand': {'name': 'Nightstand', 'price': 24800},
-    'bookshelf': {'name': 'Bookshelf', 'price': 37300},
-    'tv_stand': {'name': 'TV Stand', 'price': 33100},
-    'plant': {'name': 'Decorative Plant', 'price': 6600},
-    'artificial_plant': {'name': 'Artificial Plant', 'price': 4500},
-    'wall_art': {'name': 'Wall Art', 'price': 13200},
-    'rug': {'name': 'Area Rug', 'price': 24800},
-    'dining_table': {'name': 'Dining Table', 'price': 74600},
-    'dining_chair': {'name': 'Dining Chair (set of 4)', 'price': 59400},
-    'desk': {'name': 'Office Desk', 'price': 49700},
-    'office_chair': {'name': 'Office Chair', 'price': 33100},
-    'curtains': {'name': 'Window Curtains', 'price': 10700},
-    'bathtub': {'name': 'Bathtub', 'price': 65000},
-    'shower': {'name': 'Shower', 'price': 45000},
-    'sink': {'name': 'Sink', 'price': 18000},
-    'mirror': {'name': 'Mirror', 'price': 8500},
-    'gas_stove': {'name': 'Gas Stove', 'price': 42000},
-    'kitchen_cabinet': {'name': 'Kitchen Cabinet Set', 'price': 58000},
-    'refrigerator': {'name': 'Refrigerator', 'price': 72000},
-    'dishwasher': {'name': 'Dishwasher', 'price': 48000},
-    'microwave': {'name': 'Microwave Oven', 'price': 22000},
+    'sofa': {'name': 'Modern Sofa', 'price': 45000},
+    'armchair': {'name': 'Armchair', 'price': 18000},
+    'coffee_table': {'name': 'Coffee Table', 'price': 8000},
+    'side_table': {'name': 'Side Table', 'price': 4500},
+    'floor_lamp': {'name': 'Floor Lamp', 'price': 3500},
+    'table_lamp': {'name': 'Table Lamp', 'price': 2000},
+    'bed': {'name': 'Bed', 'price': 35000},
+    'nightstand': {'name': 'Nightstand', 'price': 6000},
+    'bookshelf': {'name': 'Bookshelf', 'price': 9000},
+    'tv_stand': {'name': 'TV Stand', 'price': 12000},
+    'plant': {'name': 'Decorative Plant', 'price': 800},
+    'artificial_plant': {'name': 'Artificial Plant', 'price': 600},
+    'wall_art': {'name': 'Wall Art', 'price': 2500},
+    'rug': {'name': 'Area Rug', 'price': 6500},
+    'dining_table': {'name': 'Dining Table', 'price': 28000},
+    'dining_chair': {'name': 'Dining Chair (set of 4)', 'price': 16000},
+    'desk': {'name': 'Office Desk', 'price': 12000},
+    'office_chair': {'name': 'Office Chair', 'price': 9000},
+    'curtains': {'name': 'Window Curtains', 'price': 3500},
+    'bathtub': {'name': 'Bathtub', 'price': 45000},
+    'shower': {'name': 'Shower', 'price': 12000},
+    'sink': {'name': 'Sink', 'price': 6000},
+    'mirror': {'name': 'Mirror', 'price': 2000},
+    'gas_stove': {'name': 'Gas Stove', 'price': 9000},
+    'kitchen_cabinet': {'name': 'Kitchen Cabinet Set', 'price': 55000},
+    'refrigerator': {'name': 'Refrigerator', 'price': 35000},
+    'dishwasher': {'name': 'Dishwasher', 'price': 32000},
+    'microwave': {'name': 'Microwave Oven', 'price': 9000},
 }
+
+EXTRA_FURNITURE_SYNONYMS = {
+    'sofa': ['sofa', 'couch'],
+    'armchair': ['armchair', 'arm chair'],
+    'coffee_table': ['coffee table'],
+    'side_table': ['side table'],
+    'floor_lamp': ['floor lamp', 'standing lamp'],
+    'table_lamp': ['table lamp', 'desk lamp'],
+    'nightstand': ['nightstand', 'night stand', 'bedside table'],
+    'bookshelf': ['bookshelf', 'book shelf'],
+    'tv_stand': ['tv stand', 'television stand', 'media console', 'tv unit'],
+    'plant': ['plant'],
+    'artificial_plant': ['artificial plant'],
+    'wall_art': ['wall art', 'painting', 'art frame'],
+    'rug': ['rug', 'carpet'],
+    'dining_table': ['dining table'],
+    'dining_chair': ['dining chair'],
+    'office_chair': ['office chair', 'task chair'],
+    'curtains': ['curtain', 'curtains', 'drape', 'drapes', 'window curtain'],
+    'bathtub': ['bathtub', 'bath tub', 'tub'],
+    'gas_stove': ['gas stove', 'stove', 'cooktop', 'range'],
+    'kitchen_cabinet': ['kitchen cabinet', 'cabinets', 'cabinet'],
+    'refrigerator': ['refrigerator', 'fridge'],
+    'microwave': ['microwave', 'microwave oven', 'oven'],
+}
+
+
+def build_furniture_synonyms():
+    synonyms = {}
+    for item_key in FURNITURE_PRICES.keys():
+        base = item_key.replace('_', ' ')
+        synonyms[item_key] = {base, item_key}
+
+    for item_key, terms in EXTRA_FURNITURE_SYNONYMS.items():
+        synonyms.setdefault(item_key, set()).update(terms)
+
+    normalized = {}
+    for item_key, terms in synonyms.items():
+        normalized[item_key] = sorted({normalize_prompt_text(term) for term in terms if term})
+
+    return normalized
+
+
+FURNITURE_SYNONYMS = build_furniture_synonyms()
+FURNITURE_KEYWORDS = sorted(
+    set(FURNITURE_KEYWORDS)
+    | {term for terms in FURNITURE_SYNONYMS.values() for term in terms}
+)
 
 # Purchase links for furniture (Amazon, Flipkart)
 FURNITURE_LINKS = {
@@ -685,67 +781,20 @@ def estimate_furniture_pricing(room_type, style, prompt, uploaded_image=None):
     Uses very strict matching to avoid false positives
     """
     items = []
-    prompt_lower = prompt.lower().strip()
+    prompt_lower = normalize_prompt_text(prompt)
     
     # If prompt is empty, return empty pricing
     if not prompt_lower:
         return {'items': [], 'total': 0}
     
-    # Manual keyword mapping with very specific terms to avoid false matches
-    # Format: furniture_key: [list of specific phrases that should match]
-    # All keywords are lowercase for case-insensitive matching
-    keyword_mapping = {
-        'sofa': ['sofa', 'couch'],
-        'armchair': ['armchair', 'arm chair'],
-        'coffee_table': ['coffee_table', 'coffee table'],
-        'side_table': ['side_table', 'side table'],
-        'floor_lamp': ['floor_lamp', 'floor lamp', 'standing lamp'],
-        'table_lamp': ['table_lamp', 'table lamp', 'desk lamp'],
-        'bed': ['bed'],
-        'nightstand': ['nightstand', 'night stand', 'bedside table'],
-        'bookshelf': ['bookshelf', 'book shelf'],
-        'tv_stand': ['tv_stand', 'tv stand', 'television stand', 'media console'],
-        'plant': ['plant'],  # Will match "plant" but we'll handle "artificial plant" separately
-        'artificial_plant': ['artificial_plant', 'artificial plant'],
-        'wall_art': ['wall_art', 'wall art', 'painting', 'art frame'],
-        'rug': ['rug', 'carpet'],
-        'dining_table': ['dining_table', 'dining table'],
-        'dining_chair': ['dining_chair', 'dining chair'],
-        'desk': ['desk'],
-        'office_chair': ['office_chair', 'office chair', 'task chair'],
-        'curtains': ['curtains', 'curtain', 'drape', 'drapes', 'window curtain'],
-        'bathtub': ['bathtub', 'bath tub', 'tub'],
-        'shower': ['shower'],
-        'sink': ['sink'],
-        'mirror': ['mirror'],
-        'gas_stove': ['gas_stove', 'gas stove', 'stove', 'cooktop', 'range'],
-        'kitchen_cabinet': ['kitchen_cabinet', 'cabinet', 'kitchen cabinet', 'cabinets'],
-        'refrigerator': ['refrigerator', 'fridge'],
-        'dishwasher': ['dishwasher'],
-        'microwave': ['microwave', 'oven'],
-    }
-    
-    mentioned_items = set()
-    matched_keywords = set()
-    
-    # Check each furniture item
-    for item_key, keywords in keyword_mapping.items():
-        for keyword in keywords:
-            keyword = keyword.lower()
-            # Use word boundary matching that supports multi-word phrases
-            pattern = r'(?<!\w)' + re.escape(keyword) + r'(?!\w)'
-            
-            if re.search(pattern, prompt_lower):
-                # Special handling for "plant" vs "artificial plant"
-                if item_key == 'plant' and 'artificial plant' in prompt_lower:
-                    continue  # Skip regular plant if artificial plant is mentioned
-                
-                mentioned_items.add(item_key)
-                matched_keywords.add(keyword)
-                break  # Found match, no need to check other keywords for this item
+    mentioned_items, matched_keywords = detect_furniture_items(prompt_lower)
+    mentioned_items = set(mentioned_items)
+
+    if 'artificial_plant' in mentioned_items and 'plant' in mentioned_items:
+        mentioned_items.remove('plant')
     
     # Build pricing list for known items
-    for item_key in mentioned_items:
+    for item_key in sorted(mentioned_items):
         if item_key in FURNITURE_PRICES:
             items.append({
                 'name': FURNITURE_PRICES[item_key]['name'],
@@ -756,13 +805,13 @@ def estimate_furniture_pricing(room_type, style, prompt, uploaded_image=None):
     
     # Detect custom items (phrases not in our database)
     filler_words = {'add','please','show','include','room','my','the','a','an','to','in','with','and','make','have','should','be','needs','want','like','color','coloured','colored','paint','of','for','on','at','this','that'}
-    raw_segments = re.split(r',|/|\band\b|\bwith\b|\bplus\b|\b&\b', prompt)
+    raw_segments = re.split(r',|/|\.|;|\n|\r|\band\b|\bwith\b|\bplus\b|\b&\b', prompt)
     custom_counter = 1
     for segment in raw_segments:
         original_segment = segment.strip()
         if not original_segment:
             continue
-        segment_lower = original_segment.lower()
+        segment_lower = normalize_prompt_text(original_segment)
         # Skip if this segment already matched a known keyword
         if any(re.search(r'(?<!\w)' + re.escape(keyword) + r'(?!\w)', segment_lower) for keyword in matched_keywords):
             continue
@@ -875,83 +924,6 @@ def suggest_furniture():
         return jsonify({'error': str(e)}), 500
 
 
-# ─── IMPROVEMENT 3: Groq Prompt Improvement Route ──────────────────
-@app.route('/improve-prompt', methods=['POST'])
-def improve_prompt():
-    """
-    Use Groq LLM to expand a short user prompt into a detailed,
-    Stable-Diffusion-optimized interior-design prompt.
-    """
-    data = request.json
-    user_prompt = data.get('prompt', '')
-    room_type = data.get('room_type', 'living room')
-    style = data.get('style', 'modern')
-
-    if not user_prompt.strip():
-        return jsonify({"error": "Prompt cannot be empty"}), 400
-
-    # Fast path: if API key is missing/placeholder, provide local improvement.
-    if not is_valid_groq_key(GROQ_API_KEY):
-        fallback = build_structured_prompt(user_prompt.strip(), room_type, style)
-        return jsonify({
-            "improved_prompt": fallback,
-            "original_prompt": user_prompt,
-            "source": "local-fallback",
-            "warning": "Groq API key is missing or invalid. Using local prompt enhancement.",
-        })
-
-    try:
-        groq_response = req.post(
-            "https://api.groq.com/openai/v1/chat/completions",
-            headers={
-                "Authorization": f"Bearer {GROQ_API_KEY}",
-                "Content-Type": "application/json",
-            },
-            json={
-                    "model": "llama-3.1-8b-instant",
-                "messages": [
-                    {
-                        "role": "system",
-                        "content": (
-                            "You are an expert Stable Diffusion prompt engineer "
-                            "specializing in interior design. Take the user's simple furniture "
-                            "request and rewrite it as a highly detailed SD prompt. Include: "
-                            "specific material descriptions, lighting quality, spatial positioning "
-                            "of each furniture item, photorealism keywords, and style consistency. "
-                            "Make sure EVERY furniture item the user mentions is included explicitly. "
-                            "Output ONLY the improved prompt. No explanation. No preamble."
-                        ),
-                    },
-                    {
-                        "role": "user",
-                        "content": f"Room: {room_type}. Style: {style}. User wants: {user_prompt}",
-                    },
-                ],
-                "max_tokens": 300,
-            },
-            timeout=15,
-        )
-
-        groq_response.raise_for_status()
-        improved = groq_response.json()["choices"][0]["message"]["content"]
-        return jsonify({
-            "improved_prompt": improved,
-            "original_prompt": user_prompt,
-            "source": "groq",
-        })
-
-    except Exception as e:
-        print(f"Groq API error: {e}")
-        # Fallback: return a locally-built structured prompt
-        fallback = build_structured_prompt(user_prompt.strip(), room_type, style)
-        return jsonify({
-            "improved_prompt": fallback,
-            "original_prompt": user_prompt,
-            "source": "local-fallback",
-            "warning": "Groq API unavailable, using local prompt enhancement.",
-        })
-
-
 @app.route('/api/generate', methods=['POST'])
 def generate_room():
     try:
@@ -982,7 +954,8 @@ def generate_room():
             structured_prompt = build_structured_prompt(prompt_clean, room_name, style)
 
         # Step 2: Extract and enforce furniture items
-        furniture_items = extract_furniture_items(prompt_clean)
+        furniture_keys, _ = detect_furniture_items(prompt_clean)
+        furniture_items = [item_key.replace('_', ' ') for item_key in furniture_keys]
         final_prompt = enforce_furniture_in_prompt(structured_prompt, furniture_items)
         final_prompt = shorten_prompt_for_clip(final_prompt, max_words=70)
 
@@ -994,7 +967,7 @@ def generate_room():
             print(f"Generating with ControlNet on {device}...")
             print(f"Final Prompt: {final_prompt}")
             print(f"Negative: {negative[:80]}...")
-            print(f"Furniture items detected: {furniture_items}")
+            print(f"Furniture items detected: {furniture_keys}")
             
             if device == "cpu":
                 print("This will take 60-120 seconds on CPU with ControlNet...")

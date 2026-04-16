@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react'
 import { useDropzone } from 'react-dropzone'
 import { motion } from 'framer-motion'
-import { Upload, Download, Share2, IndianRupee, Trash2, RotateCw, ZoomIn, ZoomOut, RotateCcw } from 'lucide-react'
+import { Upload, Download, IndianRupee, Trash2, RotateCw, ZoomIn, ZoomOut, RotateCcw } from 'lucide-react'
 import html2canvas from 'html2canvas'
 
 // --- FIREBASE IMPORTS ---
@@ -21,7 +21,6 @@ export default function DragDropCustomize() {
   const [loading, setLoading] = useState(true)
   const [selectedCategory, setSelectedCategory] = useState('All')
 
-  const OPEN_ON_SINGLE_CLICK = false
   const [resizing, setResizing] = useState(null)
   const MIN_ITEM_SIZE = 60
   const MAX_ITEM_SIZE = 600
@@ -174,22 +173,6 @@ export default function DragDropCustomize() {
       console.error('Error saving image:', error)
       alert('Failed to save image')
     }
-  }
-
-  const handleShare = async () => {
-    if (!canvasRef.current) return
-    try {
-      const canvas = await html2canvas(canvasRef.current, { backgroundColor: null, scale: 2 })
-      canvas.toBlob(async (blob) => {
-        const file = new File([blob], 'room-design.png', { type: 'image/png' })
-        if (navigator.share && navigator.canShare?.({ files: [file] })) {
-          await navigator.share({ files: [file], title: 'My Room Design', text: 'Created with Homelytics!' })
-        } else {
-          await navigator.clipboard.writeText(window.location.href)
-          alert('Link copied to clipboard!')
-        }
-      })
-    } catch (error) { console.error('Share error:', error) }
   }
 
   const filteredFurniture = selectedCategory === 'All'

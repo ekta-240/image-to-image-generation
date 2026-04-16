@@ -9,10 +9,10 @@ Transform your empty rooms into beautifully furnished spaces using AI-powered im
 ### 🎨 AI Room Generation (Image-to-Image)
 - **ControlNet + Depth Map**: Preserves your room's walls, windows, and floor structure using Midas depth estimation + ControlNet conditioning
 - **Structured Prompts**: Your simple prompt is wrapped in a professional interior-design template for best SD results
+- **Local Prompt Enhancement**: Prompts are auto-structured locally (no external API required)
 - **Negative Prompt Protection**: Blocks unwanted artifacts (people, cartoon, blurry, wrong architecture, etc.)
 - **Furniture Enforcement**: Automatically detects furniture items in your prompt and adds explicit enforcement so nothing is missing
 - **Two-Stage Hi-Res Fix**: Stage 1 generates furniture layout → Stage 2 refines details for sharper output
-- **✨ Improve My Prompt (AI)**: One-click Groq LLM-powered prompt enhancement that turns "Add a bed, sofa, lamp" into a detailed SD-optimized prompt
 - **Before/After Comparison Slider**: Drag-to-compare your original room vs the AI-furnished result
 - **Multiple Styles**: Modern, Contemporary, Minimalist, Industrial, Bohemian, Scandinavian, Traditional, Rustic
 - **Room Types**: Living Room, Bedroom, Kitchen, Bathroom, Office, Dining Room, Kids Room, Outdoor
@@ -51,10 +51,9 @@ Before starting, make sure you have:
 | **NVIDIA GPU** | 6GB+ VRAM | RTX 3050 / 3060 / 4060 or better |
 | **CUDA Toolkit** | 12.1+ | [NVIDIA CUDA](https://developer.nvidia.com/cuda-downloads) |
 | **Git** | Any | [git-scm.com](https://git-scm.com/) |
-| **Hugging Face Account** | Free | [huggingface.co/join](https://huggingface.co/join) |
-| **Groq API Key** (optional) | Free | [console.groq.com](https://console.groq.com) |
+| **Firebase Project** (optional) | Free | [console.firebase.google.com](https://console.firebase.google.com) |
 
-> **Disk Space**: You need ~10GB free for model downloads (SD v1.5 + ControlNet + Midas).
+> **Disk Space**: You need ~10GB free for model downloads (Realistic Vision + ControlNet + Midas).
 
 ---
 
@@ -75,7 +74,7 @@ cd image-to-image-generation
 npm install
 ```
 
-This installs React, Vite, Framer Motion, react-compare-image, and all other frontend packages.
+This installs React, Vite, Tailwind CSS, Framer Motion, and all other frontend packages.
 
 ---
 
@@ -113,63 +112,20 @@ This installs:
 - `controlnet_aux` — Midas depth estimator for ControlNet
 - `transformers`, `accelerate`, `safetensors` — Hugging Face ecosystem
 - `flask`, `flask-cors` — Backend web server
-- `requests` — For Groq API calls
 - `Pillow` — Image processing
 
----
-
-### Step 5 — Set Your Hugging Face Token
-
-You need a Hugging Face token for the first-time model download.
-
-1. Go to https://huggingface.co/settings/tokens
-2. Create a new token (read access is enough)
-3. Set it as an environment variable:
-
-```bash
-# Windows PowerShell:
-$env:HF_TOKEN="hf_your_token_here"
-
-# Windows CMD:
-set HF_TOKEN=hf_your_token_here
-
-# macOS / Linux:
-export HF_TOKEN="hf_your_token_here"
-```
-
-> After the first run, models are cached locally and the token is no longer needed.
+No API keys are required for the default setup. Models download on the first run.
 
 ---
 
-### Step 6 — Set Your Groq API Key (Optional — for "Improve My Prompt" feature)
-
-1. Go to https://console.groq.com and create a free account
-2. Generate an API key
-3. Open `backend/app.py` and find this line (around line 44):
-   ```python
-   GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "YOUR_GROQ_API_KEY")
-   ```
-4. Either replace `"YOUR_GROQ_API_KEY"` with your actual key, OR set it as an environment variable:
-   ```bash
-   # Windows PowerShell:
-   $env:GROQ_API_KEY="gsk_your_key_here"
-   
-   # macOS / Linux:
-   export GROQ_API_KEY="gsk_your_key_here"
-   ```
-
-> If Groq is not configured, the "Improve My Prompt" button will still work — it falls back to a local prompt builder.
-
----
-
-### Step 7 — Firebase Setup (For Drag & Drop Feature)
+### Step 5 — Firebase Setup (For Drag & Drop Feature)
 
 1. Go to [Firebase Console](https://console.firebase.google.com/)
 2. Create a new project named **Homelytics**
 3. Go to **Firestore Database** → Create Database → Start in test mode
 4. Go to **Project Settings** → **Your Apps** → Click the Web (`</>`) icon
 5. Copy the `firebaseConfig` object
-6. Create `src/firebase.js` (or copy from `src/firebase_example.js`) and paste your config:
+6. Update `src/firebase.js` with your config:
 
 ```javascript
 import { initializeApp } from "firebase/app";
@@ -180,7 +136,7 @@ const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app);
 ```
 
-> **One-time data migration**: To load the 50 furniture items into Firestore, temporarily render `<Migration />` in `App.jsx`, open the browser, click "Push Library to Firestore", then revert `App.jsx`.
+> **Firestore data**: The drag & drop library reads from the `furniture` collection. Add documents with fields like `name`, `category`, `price`, `image`, and `links`.
 
 ---
 
@@ -207,7 +163,7 @@ python app.py
 **What happens on first run:**
 1. Midas depth estimator downloads (~400 MB) ← takes 1-2 minutes
 2. ControlNet depth model downloads (~1.4 GB) ← takes 2-3 minutes
-3. Stable Diffusion v1.5 downloads (~5 GB) ← takes 5-15 minutes
+3. Realistic Vision V5.1 (SD 1.5 base) downloads (~5 GB) ← takes 5-15 minutes
 4. 2D Layout pipeline loads
 
 **Wait until you see this in the terminal:**
@@ -216,7 +172,7 @@ python app.py
 HOMELYTICS BACKEND SERVER
 ============================================================
 Device: cuda
-Model: runwayml/stable-diffusion-v1-5
+Model: SG161222/Realistic_Vision_V5.1_noVAE
 ControlNet: lllyasviel/sd-controlnet-depth
 Depth Estimator: Ready
 Layout Model: Loaded
@@ -263,12 +219,11 @@ Go to: **http://localhost:3000**
 3. **Choose** a design style (Modern, Minimalist, etc.)
 4. **(Optional)** Set your budget and click **"Get Budget Suggestions"** — this auto-fills the prompt
 5. **Type** your furniture prompt, e.g., `Add a bed, sofa, table, and lamp`
-6. **(Optional)** Click **"✨ Improve My Prompt"** to get an AI-enhanced, detailed prompt
-7. Click **"Generate Room Design"**
-8. Wait ~45 seconds (RTX 3050) for the two-stage generation
-9. View the **Before/After comparison slider** to compare original vs furnished
-10. **Download** or **Share** the result
-11. Click **"Pricing"** to see estimated furniture costs with Amazon/Flipkart links
+6. Click **"Generate Room Design"**
+7. Wait ~45 seconds (RTX 3050) for the two-stage generation
+8. View the **Before/After comparison slider** to compare original vs furnished
+9. **Download** or **Share** the result
+10. Click **"Pricing"** to see estimated furniture costs with Amazon/Flipkart links
 
 ---
 
@@ -284,12 +239,12 @@ homelytics/
 │   ├── components/
 │   │   └── Navbar.jsx             # Navigation bar
 │   └── pages/
-│       ├── AIGeneration.jsx       # AI room generation with Improve Prompt + Compare slider
+│       ├── AIGeneration.jsx       # AI room generation with comparison slider
 │       ├── DragDropCustomize.jsx  # Canvas-based furniture placement
 │       ├── Home.jsx               # Landing page
 │       └── LayoutGenerator.jsx    # 2D floor plan generator
 ├── backend/
-│   ├── app.py                     # Flask API: ControlNet generation, Groq prompts, budget API
+│   ├── app.py                     # Flask API: ControlNet generation, prompt parsing, budget API
 │   ├── requirements.txt           # Python dependencies
 │   ├── uploads/                   # Uploaded images (auto-created)
 │   └── generated/                 # Generated images (auto-created)
@@ -306,16 +261,15 @@ homelytics/
 ### Models Used
 | Model | Purpose | Size |
 |-------|---------|------|
-| `runwayml/stable-diffusion-v1-5` | Base image generation | ~5 GB |
+| `SG161222/Realistic_Vision_V5.1_noVAE` | Base image generation | ~5 GB |
 | `lllyasviel/sd-controlnet-depth` | Room structure preservation | ~1.4 GB |
 | `lllyasviel/Annotators` (Midas) | Depth map extraction | ~400 MB |
-| `llama-3.1-8b-instant` (Groq) | Prompt improvement | Cloud API |
 
 ### Generation Pipeline
 ```
 User Prompt
     ↓
-extract_furniture_items() → detects: bed, sofa, table, lamp
+detect_furniture_items() → detects: bed, sofa, table, lamp
     ↓
 build_structured_prompt() → wraps in interior design template
     ↓
@@ -346,13 +300,14 @@ Final furnished room image
 | `POST` | `/api/generate` | Generate furnished room image (multipart form) |
 | `POST` | `/api/generate-layout` | Generate 4 floor plan layouts |
 | `POST` | `/api/suggest-furniture` | Budget-based furniture suggestions |
-| `POST` | `/improve-prompt` | AI prompt enhancement via Groq |
 
 ---
 
 ## 📊 Furniture Library
 
-50 items across 8 categories:
+Furniture items are loaded from the Firestore `furniture` collection. Counts depend on your data.
+
+Example categories:
 
 | Category | Items |
 |----------|-------|
@@ -372,9 +327,8 @@ Final furnished room image
 | Problem | Solution |
 |---------|----------|
 | `CUDA out of memory` | Close other GPU apps. The pipeline uses CPU offload for 6GB cards. |
-| `Model download fails` | Check your internet connection. Models are cached in `~/.cache/huggingface/`. Delete the cache and retry. |
+| `Model download fails` | Check your internet connection. If the model is gated, run `huggingface-cli login` or switch to a local model path. Models are cached in `~/.cache/huggingface/`. |
 | `ModuleNotFoundError: controlnet_aux` | Run `pip install controlnet_aux` in your virtual environment. |
-| `Groq API returns 400` | The model name may have changed. Check [Groq docs](https://console.groq.com/docs/models) for available models. |
 | `Port 5000 already in use` | Kill the existing process: `netstat -ano | findstr :5000` then `taskkill /PID <pid> /F` |
 | `Port 3000 already in use` | Vite will auto-select the next available port (3001, 3002, etc.) |
 | Backend shows `Demo mode active` | Either GPU is not available or `USE_LOCAL_MODEL=False`. Check `python -c "import torch; print(torch.cuda.is_available())"` |
@@ -389,9 +343,8 @@ This project is for educational purposes (B.Tech final year project).
 
 ## 🙏 Credits
 
-- [Stable Diffusion v1.5](https://huggingface.co/runwayml/stable-diffusion-v1-5) — RunwayML
+- [Realistic Vision V5.1](https://huggingface.co/SG161222/Realistic_Vision_V5.1_noVAE) — SG161222
 - [ControlNet](https://huggingface.co/lllyasviel/sd-controlnet-depth) — lllyasviel
 - [Midas Depth Estimation](https://huggingface.co/lllyasviel/Annotators) — lllyasviel
-- [Groq](https://groq.com/) — Fast LLM inference
 - [Diffusers](https://huggingface.co/docs/diffusers) — Hugging Face
 - [React](https://react.dev/) + [Vite](https://vitejs.dev/) + [Tailwind CSS](https://tailwindcss.com/)
