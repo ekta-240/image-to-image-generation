@@ -78,14 +78,14 @@ export default function LayoutGenerator() {
             className="overflow-hidden rounded-[32px] shadow-xl backdrop-blur"
             style={{ border: '1px solid rgb(var(--color-card-border))', background: 'rgb(var(--color-card) / 0.92)' }}
           >
-            <div className="border-b px-6 py-5 text-white" style={{ borderColor: 'rgba(255,255,255,0.10)', background: 'rgb(var(--color-navy))' }}>
+            <div className="border-b px-6 py-5" style={{ borderColor: 'rgb(var(--color-card-border))', background: 'linear-gradient(135deg, rgb(var(--color-coral) / 0.15), rgb(var(--bg-tertiary) / 0.8))' }}>
               <div className="flex items-center gap-3">
                 <div className="rounded-2xl p-3" style={{ background: 'rgb(var(--color-coral) / 0.20)' }}>
                   <Wand2 className="h-6 w-6" style={{ color: 'rgb(var(--color-coral))' }} />
                 </div>
                 <div>
-                  <h2 className="text-2xl font-bold">Plan Inputs</h2>
-                  <p className="text-sm" style={{ color: 'rgba(255,255,255,0.65)' }}>Optimized for blueprint-style ideation and quick comparisons.</p>
+                  <h2 className="text-2xl font-bold" style={{ color: 'rgb(var(--fg-primary))' }}>Plan Inputs</h2>
+                  <p className="text-sm" style={{ color: 'rgb(var(--fg-secondary))' }}>Optimized for blueprint-style ideation and quick comparisons.</p>
                 </div>
               </div>
             </div>
@@ -104,13 +104,13 @@ export default function LayoutGenerator() {
                   value={totalArea}
                   onChange={(event) => setTotalArea(event.target.value)}
                   placeholder="e.g. 1200"
-                  className="w-full rounded-2xl px-4 py-3 text-lg font-medium outline-none transition"
+                  className="input-base w-full rounded-2xl px-4 py-3 text-lg font-medium outline-none transition"
                   style={{
                     border: '1px solid rgb(var(--color-card-border))',
                     background: 'rgb(var(--bg-secondary))',
                     color: 'rgb(var(--fg-primary))',
                   }}
-                  onFocus={e => { e.target.style.borderColor = 'rgb(var(--color-coral))'; e.target.style.background = 'rgb(var(--color-card))'; e.target.style.boxShadow = '0 0 0 3px rgb(var(--color-coral) / 0.10)'; }}
+                  onFocus={e => { e.target.style.borderColor = 'rgb(var(--color-coral))'; e.target.style.background = 'rgb(var(--color-card))'; e.target.style.boxShadow = '0 0 0 3px rgba(59,130,246,0.10)'; }}
                   onBlur={e => { e.target.style.borderColor = 'rgb(var(--color-card-border))'; e.target.style.background = 'rgb(var(--bg-secondary))'; e.target.style.boxShadow = 'none'; }}
                 />
               </div>
@@ -123,13 +123,13 @@ export default function LayoutGenerator() {
                   id="room-count"
                   value={roomCount}
                   onChange={(event) => setRoomCount(event.target.value)}
-                  className="w-full rounded-2xl px-4 py-3 text-lg font-medium outline-none transition"
+                  className="input-base w-full rounded-2xl px-4 py-3 text-lg font-medium outline-none transition"
                   style={{
                     border: '1px solid rgb(var(--color-card-border))',
                     background: 'rgb(var(--bg-secondary))',
                     color: 'rgb(var(--fg-primary))',
                   }}
-                  onFocus={e => { e.target.style.borderColor = 'rgb(var(--color-coral))'; e.target.style.boxShadow = '0 0 0 3px rgb(var(--color-coral) / 0.10)'; }}
+                  onFocus={e => { e.target.style.borderColor = 'rgb(var(--color-coral))'; e.target.style.boxShadow = '0 0 0 3px rgba(59,130,246,0.10)'; }}
                   onBlur={e => { e.target.style.borderColor = 'rgb(var(--color-card-border))'; e.target.style.boxShadow = 'none'; }}
                 >
                   {ROOM_OPTIONS.map((option) => (
@@ -170,9 +170,14 @@ export default function LayoutGenerator() {
                     initial={{ opacity: 0, y: 8 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -8 }}
-                    className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700"
+                    className="rounded-2xl px-4 py-3 text-sm font-medium"
+                    style={{
+                      background: 'rgba(239,68,68,0.10)',
+                      border: '1px solid rgba(239,68,68,0.30)',
+                      color: 'rgb(239 68 68)',
+                    }}
                   >
-                    {error}
+                    ⚠️ {error}
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -203,7 +208,7 @@ export default function LayoutGenerator() {
             {layouts.length === 0 ? (
               <div className="grid min-h-[520px] place-items-center rounded-[28px] p-8 text-center" style={{ border: '2px dashed rgb(var(--border-secondary))', background: 'rgb(var(--bg-secondary))' }}>
                 <div className="max-w-md">
-                  <div className="mx-auto mb-5 flex h-20 w-20 items-center justify-center rounded-[28px] text-white shadow-lg" style={{ background: 'rgb(var(--color-navy))' }}>
+                  <div className="mx-auto mb-5 flex h-20 w-20 items-center justify-center rounded-[28px] shadow-lg" style={{ background: 'rgb(var(--color-coral))', color: '#fff' }}>
                     <Building2 className="h-10 w-10" />
                   </div>
                   <h3 className="text-2xl font-bold" style={{ color: 'rgb(var(--fg-primary))' }}>Waiting for your brief</h3>
@@ -230,8 +235,13 @@ export default function LayoutGenerator() {
                       </div>
                       <button
                         onClick={() => handleDownload(layout, index)}
-                        className="inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold text-white transition"
-                        style={{ background: 'rgb(var(--color-navy))' }}
+                        className="inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold transition"
+                        style={{
+                          background: 'rgb(var(--color-coral))',
+                          color: '#fff',
+                        }}
+                        onMouseEnter={e => e.currentTarget.style.background = 'rgb(var(--color-coral-hover))'}
+                        onMouseLeave={e => e.currentTarget.style.background = 'rgb(var(--color-coral))'}
                       >
                         <Download className="h-4 w-4" />
                         Download PNG

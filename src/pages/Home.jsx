@@ -300,7 +300,7 @@ export default function Home() {
                 <div className="mb-6 grid grid-cols-2 gap-3">
                   <div className="relative">
                     <div className="absolute -top-2 -left-2 text-white px-3 py-1 rounded-full text-xs font-bold z-10" style={{ background: 'rgb(var(--color-coral))' }}>Before</div>
-                    <div className="aspect-[4/3] rounded-xl flex items-center justify-center border-2" style={{ background: 'rgba(235,234,230,0.8)', borderColor: 'rgb(var(--border-primary))' }}>
+                    <div className="aspect-[4/3] rounded-xl flex items-center justify-center border-2" style={{ background: 'rgb(var(--bg-secondary))', borderColor: 'rgb(var(--border-primary))' }}>
                       <div className="text-center"><div className="text-4xl mb-1">🏠</div><p className="text-xs" style={{ color: 'rgb(var(--fg-tertiary))' }}>Empty Room</p></div>
                     </div>
                   </div>
@@ -447,7 +447,7 @@ export default function Home() {
                 <div className="mb-6 grid grid-cols-2 gap-3">
                   <div className="relative">
                     <div className="absolute -top-2 -left-2 text-white px-3 py-1 rounded-full text-xs font-bold z-10" style={{ background: 'rgb(var(--color-coral))' }}>Before</div>
-                    <div className="aspect-[4/3] rounded-xl flex items-center justify-center border-2" style={{ background: 'rgba(235,234,230,0.8)', borderColor: 'rgb(var(--border-primary))' }}>
+                    <div className="aspect-[4/3] rounded-xl flex items-center justify-center border-2" style={{ background: 'rgb(var(--bg-secondary))', borderColor: 'rgb(var(--border-primary))' }}>
                       <div className="text-center"><div className="text-4xl mb-1">🏠</div><p className="text-xs" style={{ color: 'rgb(var(--fg-tertiary))' }}>Empty Room</p></div>
                     </div>
                   </div>

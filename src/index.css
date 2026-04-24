@@ -53,6 +53,19 @@
   input, textarea, select {
     font-family: var(--font-family);
   }
+
+  /* Ensure <select> options pick up theme colors in dark mode */
+  select option {
+    background: rgb(var(--color-card));
+    color: rgb(var(--fg-primary));
+  }
+
+  /* Placeholder always uses tertiary fg */
+  input::placeholder,
+  textarea::placeholder {
+    color: rgb(var(--fg-tertiary));
+    opacity: 1;
+  }
 }
 
 /* ────────────────────────────────────────────────────────────────

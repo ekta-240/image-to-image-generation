@@ -49,7 +49,7 @@ export default function Navbar() {
           <Link to="/" className="flex items-center gap-2.5 no-underline group">
             <div
               className="w-9 h-9 rounded-xl flex items-center justify-center transition-transform group-hover:scale-105 shadow-sm"
-              style={{ background: 'rgb(var(--color-navy))' }}
+              style={{ background: 'rgb(var(--color-coral))' }}
             >
               <Home className="w-4 h-4 text-white" />
             </div>
@@ -67,11 +67,13 @@ export default function Navbar() {
                 key={to}
                 to={to}
                 className={`px-3.5 py-2 text-sm font-medium transition-colors no-underline rounded-lg ${
-                  isActive(to) ? 'nav-active-underline' : 'hover:bg-black/[0.04]'
+                  isActive(to) ? 'nav-active-underline' : ''
                 }`}
                 style={{
                   color: isActive(to) ? 'rgb(var(--fg-primary))' : 'rgb(var(--fg-tertiary))',
                 }}
+                onMouseEnter={e => { if (!isActive(to)) e.currentTarget.style.background = 'rgb(var(--bg-secondary))'; e.currentTarget.style.color = 'rgb(var(--fg-primary))'; }}
+                onMouseLeave={e => { if (!isActive(to)) e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = isActive(to) ? 'rgb(var(--fg-primary))' : 'rgb(var(--fg-tertiary))'; }}
               >
                 {label}
               </Link>
@@ -116,9 +118,11 @@ export default function Navbar() {
             </button>
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="p-2 rounded-lg hover:bg-black/[0.04] transition-colors"
+              className="p-2 rounded-lg transition-colors"
               aria-label="Toggle navigation"
               style={{ color: 'rgb(var(--fg-primary))' }}
+              onMouseEnter={e => e.currentTarget.style.background = 'rgb(var(--bg-secondary))'}
+              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
             >
               {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
             </button>

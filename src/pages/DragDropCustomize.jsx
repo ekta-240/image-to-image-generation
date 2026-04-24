@@ -230,7 +230,12 @@ export default function DragDropCustomize() {
     }
   }, [onWindowMouseMove])
 
-  const openFlipkart = (url) => { if (url) window.open(url, '_blank', 'noopener,noreferrer') }
+  const openFlipkart = (linksOrUrl) => {
+    if (!linksOrUrl) return
+    // Handle both string URL and object with flipkart key
+    const url = typeof linksOrUrl === 'string' ? linksOrUrl : (linksOrUrl.flipkart || linksOrUrl.amazon)
+    if (url) window.open(url, '_blank', 'noopener,noreferrer')
+  }
 
   useEffect(() => {
     const onKey = (e) => { if (e.key === 'Escape') setSelectedItem(null) }
@@ -267,13 +272,56 @@ export default function DragDropCustomize() {
               {categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
             </select>
             <div className="space-y-3 max-h-[600px] overflow-y-auto">
-              {filteredFurniture.map(furniture => (
-                <div key={furniture.dbId} draggable onDragStart={(e) => handleFurnitureDragStart(e, furniture)} className="rounded-lg p-3 cursor-move transition-colors" style={{ background: 'rgb(var(--bg-secondary))' }} onMouseEnter={e => e.currentTarget.style.background = 'rgb(var(--bg-tertiary))'} onMouseLeave={e => e.currentTarget.style.background = 'rgb(var(--bg-secondary))'}>
-                  <img src={furniture.image} alt={furniture.name} className="w-full h-24 object-contain rounded-md mb-2" />
-                  <p className="font-medium text-sm" style={{ color: 'rgb(var(--fg-primary))' }}>{furniture.name}</p>
-                  <p className="font-semibold text-sm" style={{ color: 'rgb(var(--color-coral))' }}>₹{furniture.price.toLocaleString('en-IN')}</p>
+              {filteredFurniture.length === 0 ? (
+                <div className="text-center py-8" style={{ color: 'rgb(var(--fg-tertiary))' }}>
+                  <p className="text-sm">No furniture in this category</p>
                 </div>
-              ))}
+              ) : (
+                filteredFurniture.map(furniture => (
+                  <div
+                    key={furniture.dbId}
+                    draggable
+                    onDragStart={(e) => handleFurnitureDragStart(e, furniture)}
+                    className="rounded-lg p-3 cursor-move transition-colors"
+                    style={{ background: 'rgb(var(--bg-secondary))' }}
+                    onMouseEnter={e => e.currentTarget.style.background = 'rgb(var(--bg-tertiary))'}
+                    onMouseLeave={e => e.currentTarget.style.background = 'rgb(var(--bg-secondary))'}
+                  >
+                    <div className="w-full h-24 rounded-md mb-2 overflow-hidden flex items-center justify-center" style={{ background: 'rgb(var(--bg-tertiary))' }}>
+                      <img
+                        src={furniture.image}
+                        alt={furniture.name}
+                        className="w-full h-24 object-contain rounded-md"
+                        referrerPolicy="no-referrer"
+                        onError={(e) => {
+                          e.target.style.display = 'none'
+                          e.target.nextSibling.style.display = 'flex'
+                        }}
+                      />
+                      <div
+                        className="w-full h-24 rounded-md items-center justify-center text-center flex-col gap-1 hidden"
+                        style={{ background: 'rgb(var(--bg-tertiary))', color: 'rgb(var(--fg-tertiary))' }}
+                      >
+                        <span className="text-2xl">🛋️</span>
+                        <span className="text-xs">Image unavailable</span>
+                      </div>
+                    </div>
+                    <p className="font-medium text-sm" style={{ color: 'rgb(var(--fg-primary))' }}>{furniture.name}</p>
+                    <p className="font-semibold text-sm" style={{ color: 'rgb(var(--color-coral))' }}>₹{furniture.price.toLocaleString('en-IN')}</p>
+                    {(furniture.links || furniture.flipkart) && (
+                      <a
+                        href={typeof (furniture.links || furniture.flipkart) === 'string' ? (furniture.links || furniture.flipkart) : ((furniture.links?.flipkart) || (furniture.links?.amazon))}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={e => e.stopPropagation()}
+                        className="mt-1 inline-block text-xs px-2 py-0.5 rounded text-white bg-blue-500 hover:bg-blue-600 transition-colors"
+                      >
+                        View on Flipkart
+                      </a>
+                    )}
+                  </div>
+                ))
+              )}
             </div>
           </div>
 

@@ -368,7 +368,7 @@ export default function AIGeneration() {
           <h1 className="text-4xl md:text-6xl font-bold mb-4">
             <span className="gradient-text">AI Room Generation</span>
           </h1>
-          <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+          <p className="text-xl max-w-2xl mx-auto" style={{ color: 'rgb(var(--fg-secondary))' }}>
             Upload your empty room and let AI transform it into a beautiful space
           </p>
         </motion.div>
@@ -408,7 +408,7 @@ export default function AIGeneration() {
                       alt="Preview"
                       className="max-h-64 mx-auto rounded-lg shadow-md"
                     />
-                    <p className="text-sm text-gray-600 font-medium">
+                    <p className="text-sm font-medium" style={{ color: 'rgb(var(--fg-secondary))' }}>
                       ✨ Click or drag to replace image
                     </p>
                   </div>
@@ -421,10 +421,10 @@ export default function AIGeneration() {
                       <Upload className="w-16 h-16 mx-auto text-gray-400" />
                     </motion.div>
                     <div>
-                      <p className="text-lg font-medium text-gray-900">
+                      <p className="text-lg font-medium" style={{ color: 'rgb(var(--fg-primary))' }}>
                         {isDragActive ? '🎯 Drop image here' : '📸 Drag & drop your room image'}
                       </p>
-                      <p className="text-sm text-gray-500 mt-1">
+                      <p className="text-sm mt-1" style={{ color: 'rgb(var(--fg-tertiary))' }}>
                         or click to browse (PNG, JPG, JPEG, WEBP)
                       </p>
                     </div>
@@ -502,7 +502,7 @@ export default function AIGeneration() {
               
               {/* Budget Slider */}
               <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium mb-2" style={{ color: 'rgb(var(--fg-primary))' }}>
                   Budget: ₹{budget.toLocaleString('en-IN')}
                 </label>
                 <input
@@ -515,7 +515,7 @@ export default function AIGeneration() {
                   className="w-full h-2 rounded-lg appearance-none cursor-pointer"
                   style={{ accentColor: 'rgb(var(--color-coral))' }}
                 />
-                <div className="flex justify-between text-xs text-gray-500 mt-1">
+                <div className="flex justify-between text-xs mt-1" style={{ color: 'rgb(var(--fg-tertiary))' }}>
                   <span>₹10K</span>
                   <span>₹500K</span>
                 </div>
@@ -523,7 +523,7 @@ export default function AIGeneration() {
 
               {/* Room Dimensions */}
               <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium mb-2" style={{ color: 'rgb(var(--fg-primary))' }}>
                   Room Dimensions (Optional - in feet)
                 </label>
                 <div className="grid grid-cols-3 gap-3">
@@ -532,21 +532,21 @@ export default function AIGeneration() {
                     placeholder="Length"
                     value={roomDimensions.length}
                     onChange={(e) => setRoomDimensions({...roomDimensions, length: e.target.value})}
-                    className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="input-base"
                   />
                   <input
                     type="number"
                     placeholder="Width"
                     value={roomDimensions.width}
                     onChange={(e) => setRoomDimensions({...roomDimensions, width: e.target.value})}
-                    className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="input-base"
                   />
                   <input
                     type="number"
                     placeholder="Height"
                     value={roomDimensions.height}
                     onChange={(e) => setRoomDimensions({...roomDimensions, height: e.target.value})}
-                    className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="input-base"
                   />
                 </div>
               </div>
@@ -572,7 +572,7 @@ export default function AIGeneration() {
                   style={{ background: 'rgba(233,69,96,0.06)', border: '1px solid rgba(233,69,96,0.20)' }}
                 >
                   <div className="flex justify-between items-center mb-3">
-                    <h3 className="font-semibold" style={{ color: 'rgb(var(--color-navy))' }}>Suggested Items ({budgetSuggestions.item_count})</h3>
+                    <h3 className="font-semibold" style={{ color: 'rgb(var(--fg-primary))' }}>Suggested Items ({budgetSuggestions.item_count})</h3>
                     <span className="text-sm font-medium" style={{ color: 'rgb(var(--color-coral))' }}>
                       {budgetSuggestions.budget_utilization}% utilized
                     </span>
@@ -580,13 +580,13 @@ export default function AIGeneration() {
                   
                   <div className="space-y-3 max-h-64 overflow-y-auto">
                     {budgetSuggestions.items.map((item, idx) => (
-                      <div key={idx} className="bg-white p-3 rounded-lg border border-green-100">
+                      <div key={idx} className="p-3 rounded-lg" style={{ background: 'rgb(var(--bg-secondary))', border: '1px solid rgb(var(--border-primary))' }}>
                         <div className="flex justify-between items-center mb-2">
-                          <span className="text-gray-700 font-medium">
+                          <span className="font-medium" style={{ color: 'rgb(var(--fg-primary))' }}>
                             {item.name}
-                            {item.priority === 'essential' && <span className="ml-2 text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">Essential</span>}
+                            {item.priority === 'essential' && <span className="ml-2 text-xs px-2 py-1 rounded" style={{ background: 'rgba(59,130,246,0.15)', color: 'rgb(59 130 246)' }}>Essential</span>}
                           </span>
-                          <span className="font-semibold text-green-900">₹{item.price.toLocaleString('en-IN')}</span>
+                          <span className="font-semibold" style={{ color: 'rgb(var(--color-coral))' }}>₹{item.price.toLocaleString('en-IN')}</span>
                         </div>
                         {item.links && (
                           <div className="flex gap-2 text-xs mt-2">
@@ -612,19 +612,19 @@ export default function AIGeneration() {
                     ))}
                   </div>
                   
-                  <div className="mt-3 pt-3 border-t border-green-200 grid grid-cols-2 gap-2 text-sm">
+                  <div className="mt-3 pt-3 grid grid-cols-2 gap-2 text-sm" style={{ borderTop: '1px solid rgb(var(--border-primary))' }}>
                     <div>
-                      <span className="text-gray-600">Total Cost:</span>
-                      <p className="font-bold text-green-900">₹{budgetSuggestions.total_cost.toLocaleString('en-IN')}</p>
+                      <span style={{ color: 'rgb(var(--fg-secondary))' }}>Total Cost:</span>
+                      <p className="font-bold" style={{ color: 'rgb(var(--fg-primary))' }}>₹{budgetSuggestions.total_cost.toLocaleString('en-IN')}</p>
                     </div>
                     <div>
-                      <span className="text-gray-600">Remaining:</span>
-                      <p className="font-bold text-green-900">₹{budgetSuggestions.remaining_budget.toLocaleString('en-IN')}</p>
+                      <span style={{ color: 'rgb(var(--fg-secondary))' }}>Remaining:</span>
+                      <p className="font-bold" style={{ color: 'rgb(var(--color-coral))' }}>₹{budgetSuggestions.remaining_budget.toLocaleString('en-IN')}</p>
                     </div>
                   </div>
 
                   {budgetSuggestions.room_area && (
-                    <div className="mt-2 text-xs text-gray-600">
+                    <div className="mt-2 text-xs" style={{ color: 'rgb(var(--fg-tertiary))' }}>
                       Room: {budgetSuggestions.room_area.length}ft × {budgetSuggestions.room_area.width}ft = {budgetSuggestions.room_area.area_sqft} sq ft ({budgetSuggestions.room_area.size_category})
                     </div>
                   )}
@@ -692,7 +692,7 @@ export default function AIGeneration() {
             </h2>
 
             {isGenerating ? (
-              <div className="h-96 flex flex-col items-center justify-center rounded-2xl relative overflow-hidden" style={{ background: 'linear-gradient(135deg, rgba(233,69,96,0.06), rgba(26,26,46,0.06))' }}>
+              <div className="h-96 flex flex-col items-center justify-center rounded-2xl relative overflow-hidden" style={{ background: 'rgb(var(--bg-secondary))' }}>
                 <motion.div
                   animate={{ rotate: 360 }}
                   transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
@@ -702,7 +702,8 @@ export default function AIGeneration() {
                 <motion.p
                   animate={{ opacity: [0.5, 1, 0.5] }}
                   transition={{ duration: 2, repeat: Infinity }}
-                  className="text-gray-700 font-semibold text-lg"
+                  className="font-semibold text-lg"
+                  style={{ color: 'rgb(var(--fg-primary))' }}
                 >
                   Creating your perfect room...
                 </motion.p>
@@ -717,7 +718,7 @@ export default function AIGeneration() {
                 {/* ── IMPROVEMENT 7: Before/After Comparison Slider ── */}
                 {showComparison && originalImage && generatedImageBlobURL ? (
                   <div>
-                    <h3 className="text-lg font-semibold mb-3 text-gray-800 flex items-center gap-2">
+                    <h3 className="text-lg font-semibold mb-3 flex items-center gap-2" style={{ color: 'rgb(var(--fg-primary))' }}>
                       🔄 Before / After Comparison
                     </h3>
                     <div className="rounded-2xl overflow-hidden">
@@ -730,7 +731,8 @@ export default function AIGeneration() {
                     </div>
                     <button
                       onClick={() => setShowComparison(false)}
-                      className="mt-3 text-sm text-blue-600 hover:text-blue-800 font-medium underline"
+                      className="mt-3 text-sm font-medium underline"
+                      style={{ color: 'rgb(var(--color-coral))' }}
                     >
                       Show generated image only
                     </button>
@@ -755,7 +757,8 @@ export default function AIGeneration() {
                     {originalImage && (
                       <button
                         onClick={() => setShowComparison(true)}
-                        className="mt-3 text-sm text-blue-600 hover:text-blue-800 font-medium underline"
+                        className="mt-3 text-sm font-medium underline"
+                        style={{ color: 'rgb(var(--color-coral))' }}
                       >
                         🔄 Show before/after comparison
                       </button>
@@ -820,11 +823,12 @@ export default function AIGeneration() {
                           initial={{ opacity: 0, x: -20 }}
                           animate={{ opacity: 1, x: 0 }}
                           transition={{ delay: index * 0.1 }}
-                          className="border-b border-gray-100 pb-3 last:border-0"
+                          className="pb-3 last:border-0"
+                          style={{ borderBottom: '1px solid rgb(var(--border-primary))' }}
                         >
                           <div className="flex justify-between items-center mb-2">
-                            <span className="text-gray-700 font-medium">{item.name}</span>
-                            <span className="font-bold text-gray-900">
+                            <span className="font-medium" style={{ color: 'rgb(var(--fg-primary))' }}>{item.name}</span>
+                            <span className="font-bold" style={{ color: 'rgb(var(--fg-primary))' }}>
                               ₹{item.price.toLocaleString('en-IN')}
                             </span>
                           </div>
@@ -850,13 +854,13 @@ export default function AIGeneration() {
                           )}
                         </motion.div>
                       ))}
-                      <div className="border-t-2 border-gray-200 pt-3 mt-3">
+                      <div className="pt-3 mt-3" style={{ borderTop: '2px solid rgb(var(--border-primary))' }}>
                         <motion.div
                           initial={{ scale: 0.9 }}
                           animate={{ scale: 1 }}
                           className="flex justify-between items-center text-xl font-bold"
                         >
-                          <span className="text-gray-900">Total</span>
+                          <span style={{ color: 'rgb(var(--fg-primary))' }}>Total</span>
                           <span className="gradient-text">
                             ₹{estimatedPrice.total.toLocaleString('en-IN')}
                           </span>
@@ -867,18 +871,18 @@ export default function AIGeneration() {
                 )}
               </motion.div>
             ) : (
-              <div className="h-96 flex items-center justify-center bg-gradient-to-br from-gray-50 to-purple-50/30 rounded-2xl border-2 border-dashed border-gray-300">
+              <div className="h-96 flex items-center justify-center rounded-2xl border-2 border-dashed" style={{ background: 'rgb(var(--bg-secondary))', borderColor: 'rgb(var(--border-primary))' }}>
                 <div className="text-center">
                   <motion.div
                     animate={{ scale: [1, 1.1, 1], rotate: [0, 10, -10, 0] }}
                     transition={{ duration: 3, repeat: Infinity }}
                   >
-                    <Sparkles className="w-20 h-20 text-purple-400 mx-auto mb-4" />
+                    <Sparkles className="w-20 h-20 mx-auto mb-4" style={{ color: 'rgb(var(--color-coral))' }} />
                   </motion.div>
-                  <p className="text-gray-600 font-medium text-lg">
+                  <p className="font-medium text-lg" style={{ color: 'rgb(var(--fg-secondary))' }}>
                     Your generated room will appear here
                   </p>
-                  <p className="text-gray-500 text-sm mt-2">
+                  <p className="text-sm mt-2" style={{ color: 'rgb(var(--fg-tertiary))' }}>
                     Upload an image and click generate to get started ✨
                   </p>
                 </div>

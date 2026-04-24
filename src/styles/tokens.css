@@ -116,4 +116,9 @@
 
   --color-card:        24 24 33;
   --color-card-border: 63 63 70;
+
+  /* Keep navy dark so it still works as a background color for buttons/headers.
+     The navy lightening was intentional for dark-bg buttons — leave it dark. */
+  --color-navy:       30 30 50;
+  --color-navy-light: 44 44 68;
 }
